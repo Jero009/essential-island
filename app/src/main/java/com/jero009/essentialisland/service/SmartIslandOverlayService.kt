@@ -230,12 +230,17 @@ class SmartIslandOverlayService : AccessibilityService() {
     }
 
     private fun configureFaceUnlock(effective: com.jero009.essentialisland.data.SmartIslandSettings) {
-        val on = effective.enabled &&
+        val fingerprintOnly = com.jero009.essentialisland.util.FaceUnlockMode.fromId(effective.faceUnlockMode) ==
+            com.jero009.essentialisland.util.FaceUnlockMode.FingerprintOnly
+        val faceOn = effective.enabled &&
             effective.isEventEnabled(com.jero009.essentialisland.model.IslandEvent.FACE_UNLOCK.id)
+        // Fingerprint-only must not depend on the Face Unlock event toggle: the coordinator's own
+        // faceActive gate keeps the face path off, so feed it enabled whenever fingerprint-only is on.
+        val on = faceOn || (fingerprintOnly && effective.enabled)
         val shizuku = com.jero009.essentialisland.util.ShizukuManager.hasPermission()
         val logAvailable = on && shizuku
         // app scans show up only in the system log, so they need Shizuku
-        val appOn = effective.enabled && effective.appFaceIdEnabled && shizuku
+        val appOn = effective.enabled && effective.appFaceIdEnabled && shizuku && !fingerprintOnly
         faceUnlockCoordinator.configure(
             enabled = on,
             mode = com.jero009.essentialisland.util.FaceUnlockMode.fromId(effective.faceUnlockMode),

@@ -91,10 +91,19 @@ fun FaceUnlockSection(
             )
             Text(
                 text = "What plays the tick after the scan. \"Face unlock only\" reads the system log through Shizuku and needs the " +
-                    "phone's face-unlock success line plus the unlock itself. Without Shizuku only \"Any unlock\" works.",
+                    "phone's face-unlock success line plus the unlock itself. Without Shizuku only \"Any unlock\" works. " +
+                    "\"Fingerprint only\" never plays the face scan — it needs Shizuku running and \"Fingerprint animation\" ON."
+                ,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (mode == FaceUnlockMode.FingerprintOnly && !com.jero009.essentialisland.util.ShizukuManager.hasPermission()) {
+                Text(
+                    text = "⚠ Shizuku is not running — Fingerprint only cannot detect unlocks without it. Start Shizuku, then reopen the island.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             Text(
                 text = lastUnlock?.let {
                     "Last unlock seen in the log: ${it.type.label}, " +
