@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.HourglassBottom
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
@@ -1685,6 +1686,26 @@ fun NotificationsAndPrivacySection(
                                 scope.launch { repository.setDisabledNotificationPackages(updated) }
                             }
                         )
+
+                        if (isNotificationEnabled) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                            val keepInShade = app.packageName in settings.keepNotificationShadePackages
+                            ToggleRowItem(
+                                title = stringResource(R.string.option_keep_in_shade),
+                                subtitle = stringResource(R.string.option_keep_in_shade_desc),
+                                icon = Icons.Rounded.PushPin,
+                                checked = keepInShade,
+                                onCheckedChange = { keep ->
+                                    val updated = if (keep) {
+                                        settings.keepNotificationShadePackages + app.packageName
+                                    } else {
+                                        settings.keepNotificationShadePackages - app.packageName
+                                    }
+                                    scope.launch { repository.setKeepNotificationShadePackages(updated) }
+                                }
+                            )
+                        }
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 

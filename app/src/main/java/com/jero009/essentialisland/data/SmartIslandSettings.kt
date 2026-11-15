@@ -61,6 +61,10 @@ data class SmartIslandSettings(
     val liveActivitiesEnabled: Boolean = true,
     val navigationEnabled: Boolean = true,
     val disabledNotificationPackages: Set<String> = emptySet(),
+    // Apps whose notifications stay in the system shade even when Mirror Only is on.
+    // Needed for Nothing OS Essential notifications (Glyph): the Glyph stays lit only while
+    // the notification exists, so cancelling it kills the Glyph.
+    val keepNotificationShadePackages: Set<String> = emptySet(),
     val disabledSoundPackages: Set<String> = emptySet(),
     val disabledEvents: Set<String> = emptySet(),
     val hideWhenIdle: Boolean = false,
@@ -468,6 +472,9 @@ data class SmartIslandSettings(
         val disabledNotifArray = JSONArray()
         disabledNotificationPackages.forEach { disabledNotifArray.put(it) }
         settingsObj.put("disabledNotificationPackages", disabledNotifArray)
+        val keepShadeArray = JSONArray()
+        keepNotificationShadePackages.forEach { keepShadeArray.put(it) }
+        settingsObj.put("keepNotificationShadePackages", keepShadeArray)
 
         val disabledSoundArray = JSONArray()
         disabledSoundPackages.forEach { disabledSoundArray.put(it) }
@@ -918,6 +925,7 @@ data class SmartIslandSettings(
                 liveActivitiesEnabled = obj.optBoolean("liveActivitiesEnabled", defaults.liveActivitiesEnabled),
                 navigationEnabled = obj.optBoolean("navigationEnabled", defaults.navigationEnabled),
                 disabledNotificationPackages = safeStringSet("disabledNotificationPackages", defaults.disabledNotificationPackages),
+                keepNotificationShadePackages = safeStringSet("keepNotificationShadePackages", defaults.keepNotificationShadePackages),
                 disabledSoundPackages = safeStringSet("disabledSoundPackages", defaults.disabledSoundPackages),
                 disabledEvents = safeStringSet("disabledEvents", defaults.disabledEvents),
                 hideWhenIdle = obj.optBoolean("hideWhenIdle", defaults.hideWhenIdle),

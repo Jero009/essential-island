@@ -513,6 +513,7 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         if (isGroupSummary) {
             if (currentSettings.enabled &&
                 currentSettings.hideFromNotificationShade &&
+                sbn.packageName !in currentSettings.keepNotificationShadePackages &&
                 sbn.packageName !in currentSettings.disabledNotificationPackages &&
                 com.jero009.essentialisland.util.NotificationFilter.isThirdPartyApp(
                     sbn.packageName,
@@ -1961,6 +1962,9 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         )
 
     private fun shouldHideFromShade(notification: Notification, mode: IslandMode, packageName: String): Boolean {
+        // Keep-in-shade apps (Nothing Essential/Glyph rules need the notification to exist in
+        // the stream) are never cancelled, in every path below.
+        if (packageName in currentSettings.keepNotificationShadePackages) return false
         if (!shouldBeIslandOnly(notification, mode)) return false
         val event = listenerEventFor(notification, mode, packageName) ?: return true
         return !currentSettings.isEventDisabledSomewhere(event.id)

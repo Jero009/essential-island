@@ -375,6 +375,8 @@
     <string name="option_island_notifications">Essential Island Notifications</string>
     <string name="option_island_notifications_desc">Display notifications from this app in the island pill and expanded view</string>
     <string name="option_island_sound">Island Notification Sound</string>
+    <string name="option_keep_in_shade">Keep in system shade</string>
+    <string name="option_keep_in_shade_desc">Don\'t cancel this app\'s shade copy in island-only mode. Needed for Nothing Essential (Glyph) notifications — the Glyph stays lit only while the notification exists. The island still shows it.</string>
     <string name="option_island_sound_desc">Play sound effect when this app alerts in Essential Island</string>
     <string name="option_cooldown_bypass">Bypass Anti-Spam Cooldown</string>
     <string name="option_cooldown_bypass_desc">Always alert immediately, even during rapid message bursts</string>

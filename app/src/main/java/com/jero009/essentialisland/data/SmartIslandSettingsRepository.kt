@@ -78,6 +78,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
         val LiveActivitiesEnabled = booleanPreferencesKey("live_activities_enabled")
         val NavigationEnabled = booleanPreferencesKey("navigation_enabled")
         val DisabledNotificationPackages = stringSetPreferencesKey("disabled_notification_packages")
+        val KeepNotificationShadePackages = stringSetPreferencesKey("keep_notification_shade_packages")
         val DisabledSoundPackages = stringSetPreferencesKey("disabled_sound_packages")
         val DisabledEvents = stringSetPreferencesKey("disabled_events")
         val HideWhenIdle = booleanPreferencesKey("hide_when_idle")
@@ -365,6 +366,11 @@ class SmartIslandSettingsRepository(private val context: Context) {
                     ?.filter { it.isNotBlank() && it.length <= MAX_PACKAGE_NAME_LENGTH }
                     ?.toSet()
                     ?: defaults.disabledNotificationPackages,
+                keepNotificationShadePackages = prefs[Keys.KeepNotificationShadePackages]
+                    ?.asSequence()
+                    ?.filter { it.isNotBlank() && it.length <= MAX_PACKAGE_NAME_LENGTH }
+                    ?.toSet()
+                    ?: defaults.keepNotificationShadePackages,
                 disabledSoundPackages = prefs[Keys.DisabledSoundPackages]
                     ?.asSequence()
                     ?.filter { pkg -> pkg.isNotBlank() && pkg.length <= MAX_PACKAGE_NAME_LENGTH }
@@ -860,6 +866,12 @@ class SmartIslandSettingsRepository(private val context: Context) {
     }
     suspend fun setDisabledNotificationPackages(value: Set<String>) = editSafely {
         it[Keys.DisabledNotificationPackages] = value
+            .asSequence()
+            .filter { pkg -> pkg.isNotBlank() && pkg.length <= MAX_PACKAGE_NAME_LENGTH }
+            .toSet()
+    }
+    suspend fun setKeepNotificationShadePackages(value: Set<String>) = editSafely {
+        it[Keys.KeepNotificationShadePackages] = value
             .asSequence()
             .filter { pkg -> pkg.isNotBlank() && pkg.length <= MAX_PACKAGE_NAME_LENGTH }
             .toSet()
@@ -1450,6 +1462,10 @@ class SmartIslandSettingsRepository(private val context: Context) {
         prefs[Keys.LiveActivitiesEnabled] = settings.liveActivitiesEnabled
         prefs[Keys.NavigationEnabled] = settings.navigationEnabled
         prefs[Keys.DisabledNotificationPackages] = settings.disabledNotificationPackages
+            .asSequence()
+            .filter { it.isNotBlank() && it.length <= MAX_PACKAGE_NAME_LENGTH }
+            .toSet()
+        prefs[Keys.KeepNotificationShadePackages] = settings.keepNotificationShadePackages
             .asSequence()
             .filter { it.isNotBlank() && it.length <= MAX_PACKAGE_NAME_LENGTH }
             .toSet()
