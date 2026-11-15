@@ -118,6 +118,7 @@ class SmartIslandOverlayService : AccessibilityService() {
     }
 
     private var connectivityMonitor: com.jero009.essentialisland.util.ConnectivityEventMonitor? = null
+    private var bluetoothConnectionMonitor: com.jero009.essentialisland.util.BluetoothConnectionMonitor? = null
     private var wiredDeviceMonitor: com.jero009.essentialisland.util.WiredDeviceEventMonitor? = null
     private var transferSpeedMonitor: com.jero009.essentialisland.util.TransferSpeedMonitor? = null
     private var faceUnlockWatcher: com.jero009.essentialisland.util.FaceUnlockWatcher? = null
@@ -823,7 +824,28 @@ class SmartIslandOverlayService : AccessibilityService() {
             settingsProvider = { viewModel.displaySettings.value }
         ).also { it.start() }
 
+        // Nearby devices (BLUETOOTH_CONNECT) gates both the ACL broadcasts and the connected-device poll.
+        // Grant it through Shizuku when available instead of failing silently.
+        runCatchingLogged(TAG, "shizuku permission grant failed") {
+            if (com.jero009.essentialisland.util.ShizukuManager.hasPermission()) {
+                serviceScope.launch {
+                    listOf("android.permission.BLUETOOTH_CONNECT", "android.permission.POST_NOTIFICATIONS").forEach { perm ->
+                        com.jero009.essentialisland.util.ShizukuManager.runShellForOutput("pm grant $packageName $perm")
+                    }
+                }
+            }
+        }
+
         wiredDeviceMonitor = com.jero009.essentialisland.util.WiredDeviceEventMonitor(
+            context = this,
+            scope = serviceScope,
+            repository = notificationRepository,
+            settingsProvider = { viewModel.displaySettings.value }
+        ).also { it.start() }
+
+        // Polls connected Bluetooth devices directly — several skins (Nothing OS included) do not reliably
+        // deliver ACTION_ACL_* broadcasts to third-party apps on Android 12+.
+        bluetoothConnectionMonitor = com.jero009.essentialisland.util.BluetoothConnectionMonitor(
             context = this,
             scope = serviceScope,
             repository = notificationRepository,
@@ -1142,6 +1164,8 @@ class SmartIslandOverlayService : AccessibilityService() {
 
         connectivityMonitor?.stop()
         connectivityMonitor = null
+        bluetoothConnectionMonitor?.stop()
+        bluetoothConnectionMonitor = null
         wiredDeviceMonitor?.stop()
         wiredDeviceMonitor = null
         transferSpeedMonitor?.stop()

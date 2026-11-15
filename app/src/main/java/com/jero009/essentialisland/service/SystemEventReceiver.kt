@@ -107,7 +107,7 @@ class SystemEventReceiver(
                         }.getOrDefault(-1)
                     }
                     val statusText = buildString {
-                        append(bluetoothDeviceKind(device))
+                        append(bluetoothDeviceKind(device, deviceName))
                         append(" connected")
                         if (batteryLevel in 0..100) append(" • $batteryLevel%")
                     }
@@ -118,7 +118,7 @@ class SystemEventReceiver(
                             appName = "Bluetooth",
                             title = deviceName,
                             text = statusText,
-                            category = bluetoothDeviceCategory(device, deviceName),
+                            category = bluetoothCategory(device, deviceName),
                             mode = IslandMode.Bluetooth,
                             progress = if (batteryLevel in 0..100) batteryLevel else 0,
                             progressMax = 100,
@@ -392,54 +392,11 @@ class SystemEventReceiver(
     }
 
     @SuppressLint("MissingPermission")
-    private fun bluetoothDeviceKind(device: BluetoothDevice?): String = when (bluetoothDeviceCategory(device, device?.name ?: "")) {
-        "bt_earbuds" -> "Earbuds"
-        "bt_headphones" -> "Headphones"
-        else -> genericBluetoothKind(device)
-    }
+    private fun bluetoothDeviceKind(device: BluetoothDevice?, deviceName: String): String =
+        com.jero009.essentialisland.util.BtDeviceClassifier.labelFor(device, deviceName)
 
-    private fun genericBluetoothKind(device: BluetoothDevice?): String {
-        val bluetoothClass = try {
-            device?.bluetoothClass
-        } catch (e: SecurityException) {
-            null
-        } catch (e: Exception) {
-            null
-        }
-        return when (bluetoothClass?.deviceClass) {
-            BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET -> "Headset"
-            BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER -> "Speaker"
-            BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO -> "Car audio"
-            BluetoothClass.Device.AUDIO_VIDEO_MICROPHONE -> "Microphone"
-            else -> "Bluetooth"
-        }
-    }
-
-    /**
-     * Category drives both the label and the icon. "Headphones" class covers over-ear cans and TWS
-     * earbuds alike (they advertise the same Bluetooth class), so the device name decides the split.
-     */
-    private fun bluetoothDeviceCategory(device: BluetoothDevice?, deviceName: String): String {
-        val bluetoothClass = try {
-            device?.bluetoothClass
-        } catch (e: SecurityException) {
-            null
-        } catch (e: Exception) {
-            null
-        }
-        val audioHeadphones = bluetoothClass?.deviceClass == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES
-        val lower = deviceName.lowercase()
-        val earbudByName = listOf(
-            "buds", "pod", "airpods", "freebuds", "earbuds", "ear stick", "earstick",
-            "nothing ear", "ear (a)", "ear (2)", "tws"
-        ).any { lower.contains(it) }
-        return when {
-            audioHeadphones && earbudByName -> "bt_earbuds"
-            audioHeadphones -> "bt_headphones"
-            earbudByName -> "bt_earbuds"
-            else -> "bluetooth"
-        }
-    }
+    private fun bluetoothCategory(device: BluetoothDevice?, deviceName: String): String =
+        com.jero009.essentialisland.util.BtDeviceClassifier.category(device, deviceName)
 
     @SuppressLint("MissingPermission")
     private fun isIgnoredBluetoothDevice(device: BluetoothDevice?, deviceName: String): Boolean {
