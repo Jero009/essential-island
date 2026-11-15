@@ -9,7 +9,9 @@ package com.jero009.essentialisland.util
 
 enum class FaceUnlockMode(val id: String) {
     FaceOnly("face_only"),
-    Any("any");
+    Any("any"),
+    /** No face animation ever — the island only reacts to fingerprint unlocks. */
+    FingerprintOnly("fingerprint_only");
 
     companion object {
         fun fromId(id: String?): FaceUnlockMode = entries.firstOrNull { it.id == id } ?: FaceOnly
@@ -77,6 +79,9 @@ class FaceUnlockCoordinator(private val out: Output) {
 
     private val faceOnly: Boolean get() = mode == FaceUnlockMode.FaceOnly && logAvailable
 
+    /** Face path (scans + animations) is fully off in fingerprint-only mode; the fingerprint path stays live. */
+    private val faceActive: Boolean get() = enabled && mode != FaceUnlockMode.FingerprintOnly
+
     fun configure(
         enabled: Boolean,
         mode: FaceUnlockMode,
@@ -116,7 +121,7 @@ class FaceUnlockCoordinator(private val out: Output) {
             return
         }
         if (afterNonFaceUnlock && faceOnly) return
-        if (!enabled || !locked || out.isScanning()) return
+        if (!faceActive || !locked || out.isScanning()) return
         val startedByLog = pendingStartAt != NONE && now - pendingStartAt <= START_LEAD_MS
         pendingStartAt = NONE
         val startLinesTrusted = startLineSeenAt != NONE && now - startLineSeenAt in 0..START_TRUST_MS
@@ -142,7 +147,7 @@ class FaceUnlockCoordinator(private val out: Output) {
     fun onUserPresent(now: Long) {
         locked = false
         if (appScanning) return
-        if (!enabled || !out.isScanning()) {
+        if (!faceActive || !out.isScanning()) {
             resetUnlock()
             return
         }
@@ -198,7 +203,7 @@ class FaceUnlockCoordinator(private val out: Output) {
         when (event) {
             FaceUnlockLogEvent.Start -> {
                 startLineSeenAt = now
-                if (!enabled || out.isScanning()) return
+                if (!faceActive || out.isScanning()) return
                 if (!screenOn) {
                     pendingStartAt = now
                 } else if (locked) {
@@ -207,7 +212,7 @@ class FaceUnlockCoordinator(private val out: Output) {
                 }
             }
             FaceUnlockLogEvent.Success -> {
-                if (!enabled) return
+                if (!faceActive) return
                 if (!out.isScanning()) {
                     val beatTheScreenOn = strong && pendingStartAt != NONE && now - pendingStartAt in 0..START_LEAD_MS
                     val lostScan = strong && screenOn && startLineSeenAt != NONE &&
@@ -238,12 +243,12 @@ class FaceUnlockCoordinator(private val out: Output) {
                 successAt = NONE
                 if (!out.isScanning()) {
                     pendingStartAt = NONE
-                } else if (enabled && !accepted && !appScan) {
+                } else if (faceActive && !accepted && !appScan) {
                     rejectNow()
                 }
             }
             FaceUnlockLogEvent.End ->
-                if (enabled && out.isScanning() && !accepted && successAt == NONE) rejectSoon(END_GRACE_MS)
+                if (faceActive && out.isScanning() && !accepted && successAt == NONE) rejectSoon(END_GRACE_MS)
         }
     }
 
@@ -288,7 +293,7 @@ class FaceUnlockCoordinator(private val out: Output) {
 
     fun onBouncerShown() {
         if (appScanning) return
-        if (!enabled || !faceOnly) return
+        if (!faceActive || !faceOnly) return
         if (!out.isScanning() || accepted) return
         resetUnlock()
         out.cancel()

@@ -114,6 +114,11 @@ fun FaceUnlockSection(
                     onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.Any.id) } },
                     label = { Text("Any unlock") }
                 )
+                FilterChip(
+                    selected = mode == FaceUnlockMode.FingerprintOnly,
+                    onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.FingerprintOnly.id) } },
+                    label = { Text("Fingerprint only") }
+                )
             }
             Text(
                 text = "Capture face unlock log",

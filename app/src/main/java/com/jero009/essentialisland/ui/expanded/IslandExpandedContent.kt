@@ -158,23 +158,7 @@ fun IslandExpandedContent(
                     }
                 }
         ) {
-            if (settings.enableNotificationBackdrop) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color(settings.notificationDotColor).copy(alpha = 0.22f),
-                                    Color(settings.notificationDotColor).copy(alpha = 0.06f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(0f, 0f),
-                                radius = 700f
-                            )
-                        )
-                )
-            }
+            // Nothing theme: no dot-colour radial glow — the card stays flat black.
             EmptyExpanded(settings = settings, apps = launcherApps, onLaunchApp = onLaunchApp, onAppAction = onAppAction)
         }
         return
@@ -1197,9 +1181,8 @@ internal fun ExpandedCardPage(
  * music card has its own artwork rule and is handled inside it.
  */
 internal fun notificationHasPictureBackdrop(notification: IslandNotification, settings: SmartIslandSettings): Boolean {
-    if (!settings.enableNotificationBackdrop || notification.mode == IslandMode.Music) return false
-    val artwork = notification.largeIcon ?: notification.icon
-    return artwork != null && !artwork.isRecycled
+    // Nothing theme: notification cards are plain black — no blurred app-icon backdrop.
+    return false
 }
 
 /** Saves a new order for the pinned apps (set by the overlay service, which owns the settings repository). */
@@ -1913,88 +1896,12 @@ private fun NotificationBackdrop(
     modifier: Modifier = Modifier
 ) {
     val artwork = notification.largeIcon ?: notification.icon
-    // The blur is baked into a small picture once (drawn back up with bilinear filtering) instead of a live render effect
-    // on the picture, which re-ran its blur on every frame of the card's grow animation.
-    val blurRadiusDp = if (settings.expandedBlurEnabled) settings.expandedBlurRadius else null
-    val imageBitmap = remember(artwork, blurRadiusDp) {
-        if (artwork != null && !artwork.isRecycled) {
-            runCatching {
-                (com.jero009.essentialisland.util.MediaArt.blurredBackdrop(artwork, blurRadiusDp) ?: artwork).asImageBitmap()
-            }.getOrNull()
-        } else null
-    }
+    // Nothing theme: the blurred app-icon backdrop and accent glow are retired —
+    // notification cards sit on the flat black surface, so nothing is drawn here.
+    @Suppress("UNUSED_VARIABLE")
+    val unusedArtwork = artwork
 
-    val accentColor = cardAccentColor(notification, settings)
-    val palette = LocalIslandPalette.current
-    // A picture keeps its own look (black dim, white text) on either theme; only the picture-less glow follows the palette.
-    val scrimColor = palette.scrim
-
-    Box(modifier = modifier) {
-        if (imageBitmap != null) {
-            Image(
-                bitmap = imageBitmap,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .graphicsLayer { alpha = 0.38f }
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Black.copy(alpha = 0.35f * cardScrimScale(settings)),
-                                Color.Black.copy(alpha = 0.85f * cardScrimScale(settings))
-                            )
-                        )
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = 0.22f),
-                                Color.Transparent
-                            ),
-                            center = Offset(0f, 0f),
-                            radius = 700f
-                        )
-                    )
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = 0.35f),
-                                accentColor.copy(alpha = 0.12f),
-                                Color.Transparent
-                            ),
-                            center = Offset(0f, 0f),
-                            radius = 750f
-                        )
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                scrimColor.copy(alpha = if (palette.isLight) 0.45f else 0.65f)
-                            )
-                        )
-                    )
-            )
-        }
-    }
+    Box(modifier = modifier) { /* plain black: the card surface shows through */ }
 }
 
 /** What decides a card's height; when it changes, the height measured earlier no longer holds. */

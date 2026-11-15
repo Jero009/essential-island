@@ -420,7 +420,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
                 notificationCooldownSystemEvents = prefs[Keys.NotificationCooldownSystemEvents] ?: defaults.notificationCooldownSystemEvents,
                 developerModeEnabled = prefs[Keys.DeveloperModeEnabled] ?: defaults.developerModeEnabled,
                 recordLogs = prefs[Keys.RecordLogs] ?: defaults.recordLogs,
-                faceUnlockMode = prefs[Keys.FaceUnlockMode]?.takeIf { it in setOf("face_only", "any") } ?: defaults.faceUnlockMode,
+                faceUnlockMode = prefs[Keys.FaceUnlockMode]?.takeIf { it in setOf("face_only", "any", "fingerprint_only") } ?: defaults.faceUnlockMode,
                 faceIdStyle = prefs[Keys.FaceIdStyle]?.takeIf { it in setOf("square", "cutout", "square_tick") } ?: defaults.faceIdStyle,
                 appFaceIdEnabled = prefs[Keys.AppFaceIdEnabled] ?: defaults.appFaceIdEnabled,
                 appFaceIdStyle = prefs[Keys.AppFaceIdStyle]?.takeIf { it in setOf("square", "cutout", "square_tick") } ?: defaults.appFaceIdStyle,

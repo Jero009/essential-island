@@ -51,15 +51,9 @@ private const val GRADIENT_NEAR_SHARE = 0.35f
  * strength 1 ends on the gradient colour. Null when the gradient is off.
  */
 internal fun expandedGradientBrush(settings: SmartIslandSettings, palette: IslandPalette = IslandPalette.Dark): Brush? {
-    if (!settings.expandedGradientEnabled) return null
-    val start = expandedSurfaceColor(settings, palette)
-    val gradientColor = Color(settings.expandedGradientColor)
-    val strength = settings.expandedGradientStrength.coerceIn(0f, 1f) * (if (palette.isLight) LIGHT_GRADIENT_REACH else 1f)
-    // The far corner takes the full strength; the near corner already carries a third of it, so the colour is spread
-    // over the whole card and every step of the slider shows, instead of only a tint at one corner.
-    val from = androidx.compose.ui.graphics.lerp(start, gradientColor, strength * GRADIENT_NEAR_SHARE)
-    val to = androidx.compose.ui.graphics.lerp(start, gradientColor, strength)
-    return Brush.linearGradient(listOf(from, to))
+    // Nothing theme: flat surfaces only. The old expanded-card gradient feature is retired;
+    // every caller gets null so cards render as a single flat colour.
+    return null
 }
 
 /**
