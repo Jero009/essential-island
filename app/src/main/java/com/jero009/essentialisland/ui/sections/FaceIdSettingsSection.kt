@@ -42,6 +42,10 @@ fun FaceIdSettingsSection(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Unlock mode (Face only / Any / Fingerprint only) used to live only in Developer
+            // options and Diagnostics — surface it here where people actually look for it.
+            FaceUnlockSection(settings = settings, repository = repository)
+
             Text(
                 text = "Lock screen animation style",
                 style = MaterialTheme.typography.titleSmall,
