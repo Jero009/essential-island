@@ -86,8 +86,8 @@ fun BluetoothExpanded(
 
     // Wi-Fi / VPN "disconnected" reuse this card with a warning accent, a red or amber status dot and no battery chip.
     val lost = isConnectionLost(notification?.category)
-    val accent = connectivityAccent(notification?.category, settings.bluetoothColor)
-    val batteryColor = if ((batteryLevel ?: 100) <= 20) LocalIslandPalette.current.danger else LocalIslandPalette.current.success
+    val accent = connectivityAccent(notification?.category, LocalIslandPalette.current.text)
+    val batteryColor = if ((batteryLevel ?: 100) <= 20) LocalIslandPalette.current.danger else LocalIslandPalette.current.text
     val batteryIcon = when {
         (batteryLevel ?: 100) >= 80 -> Icons.Rounded.BatteryFull
         (batteryLevel ?: 100) >= 40 -> Icons.Rounded.Battery5Bar
@@ -183,7 +183,7 @@ fun BluetoothExpanded(
             // Wi-Fi: signal arcs that count 1 - 2 - 3 - 2 and round again; lost: the same glyph slashed, standing still.
             "wifi" -> {
                 Spacer(Modifier.width(8.dp))
-                WifiSignalBox(accent = Color(settings.bluetoothColor))
+                WifiSignalBox(accent = LocalIslandPalette.current.text)
                 return@Row
             }
             "wifi_disconnected" -> {
@@ -193,7 +193,7 @@ fun BluetoothExpanded(
             }
             "vpn" -> {
                 Spacer(Modifier.width(8.dp))
-                VpnGlobeBox(accent = Color(settings.bluetoothColor))
+                VpnGlobeBox(accent = LocalIslandPalette.current.text)
                 return@Row
             }
             // Disconnected VPN: the same globe with a slash through it, in red.
@@ -336,15 +336,12 @@ internal fun isWiredCategory(category: String?): Boolean =
  * The colour of a Wi-Fi / VPN / Bluetooth card: the Bluetooth colour from the settings for the connected cards, full-
  * strength red (the same red the Bluetooth card uses for a low battery) for a lost Wi-Fi or VPN.
  */
-internal fun connectivityAccent(category: String?, bluetoothColor: Long): Color = when (category) {
-    // USB and wired headphones keep one colour of their own whether plugged in or out; only the slash tells them apart.
-    "usb_connected", "usb_disconnected" -> USB_ACCENT
-    "headphones_connected", "headphones_disconnected" -> HEADPHONES_ACCENT
-    else -> if (isConnectionLost(category)) CONNECTION_LOST_RED else Color(bluetoothColor)
+internal fun connectivityAccent(category: String?, ink: Color): Color = when (category) {
+    // Nothing: every connectivity accent collapses to ink — only a lost connection keeps red.
+    "usb_connected", "usb_disconnected" -> ink
+    "headphones_connected", "headphones_disconnected" -> ink
+    else -> if (isConnectionLost(category)) CONNECTION_LOST_RED else ink
 }
-
-internal val USB_ACCENT = Color(0xFFD946EF)
-internal val HEADPHONES_ACCENT = Color(0xFF14B8A6)
 
 /** USB and headphones are drawn as the plain icon with a slash through it when unplugged. */
 internal fun isUnpluggedWired(category: String?): Boolean =

@@ -932,6 +932,7 @@ internal fun clampCardHeightForMode(mode: IslandMode?, height: Dp): Dp = when (m
 }
 
 /** The colour a card's backdrop is built on (its mode's colour from the settings). */
+@Composable
 internal fun cardAccentColor(notification: IslandNotification, settings: SmartIslandSettings): Color =
     when (notification.mode) {
         IslandMode.Battery -> Color(settings.batteryColor)
@@ -940,7 +941,7 @@ internal fun cardAccentColor(notification: IslandNotification, settings: SmartIs
         IslandMode.Navigation -> Color(settings.navigationColor)
         IslandMode.DownloadUpload -> Color(settings.transferColor)
         IslandMode.Hotspot -> Color(settings.hotspotColor)
-        IslandMode.Bluetooth -> connectivityAccent(notification.category, settings.bluetoothColor)
+        IslandMode.Bluetooth -> connectivityAccent(notification.category, LocalIslandPalette.current.text)
         IslandMode.Flashlight -> Color(settings.flashlightColor)
         IslandMode.ScreenRecording, IslandMode.AudioRecording -> Color(settings.screenRecordingColor)
         IslandMode.Timer -> Color(settings.timerColor)

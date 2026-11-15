@@ -106,10 +106,10 @@ class SystemEventReceiver(
                             (method?.invoke(device) as? Int) ?: -1
                         }.getOrDefault(-1)
                     }
-                    val statusText = if (batteryLevel in 0..100) {
-                        "Connected • $batteryLevel%"
-                    } else {
-                        "Connected"
+                    val statusText = buildString {
+                        append(bluetoothDeviceKind(device))
+                        append(" connected")
+                        if (batteryLevel in 0..100) append(" • $batteryLevel%")
                     }
                     notificationRepository.postNotification(
                         IslandNotification(
@@ -387,6 +387,25 @@ class SystemEventReceiver(
                     updateBatteryIsland(context, null, autoExpand = false)
                 }
             }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun bluetoothDeviceKind(device: BluetoothDevice?): String {
+        val bluetoothClass = try {
+            device?.bluetoothClass
+        } catch (e: SecurityException) {
+            null
+        } catch (e: Exception) {
+            null
+        }
+        return when (bluetoothClass?.deviceClass) {
+            BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES -> "Headphones"
+            BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET -> "Headset"
+            BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER -> "Speaker"
+            BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO -> "Car audio"
+            BluetoothClass.Device.AUDIO_VIDEO_MICROPHONE -> "Microphone"
+            else -> "Bluetooth"
         }
     }
 

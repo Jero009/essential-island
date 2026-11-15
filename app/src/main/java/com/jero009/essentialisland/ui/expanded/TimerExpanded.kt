@@ -218,13 +218,13 @@ private fun TimerExpandedMiui(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(timerColor.copy(alpha = 0.2f)),
+                    .background(LocalIslandPalette.current.tint(0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.HourglassBottom,
                     contentDescription = "Timer",
-                    tint = timerColor,
+                    tint = LocalIslandPalette.current.text,
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer {
@@ -510,13 +510,13 @@ private fun TimerExpandedCurrent(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(timerColor.copy(alpha = 0.2f)),
+                    .background(LocalIslandPalette.current.tint(0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.HourglassBottom,
                     contentDescription = "Timer",
-                    tint = timerColor,
+                    tint = LocalIslandPalette.current.text,
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer {

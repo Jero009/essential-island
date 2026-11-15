@@ -553,7 +553,7 @@ private fun AlarmIslandBody(frame: IdleWidgetFrame) {
             Text(
                 // An alarm on another day names it ("Tue 06:00").
                 text = (if (sameCalendarDay(at, data.nowMs)) "" else weekdayName.format(Date(at)) + " ") + timeFormat.format(Date(at)),
-                color = ORANGE,
+                color = SOFT_WHITE,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -591,8 +591,8 @@ private fun SpeedIslandBody(frame: IdleWidgetFrame) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         // Side by side: upload on the left, download on the right.
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            SpeedRow(Icons.Rounded.ArrowUpward, ORANGE, WidgetIslandContent.speedText(data.upBytesPerSecond))
-            SpeedRow(Icons.Rounded.ArrowDownward, SKY, WidgetIslandContent.speedText(data.downBytesPerSecond))
+            SpeedRow(Icons.Rounded.ArrowUpward, SOFT_WHITE, WidgetIslandContent.speedText(data.upBytesPerSecond))
+            SpeedRow(Icons.Rounded.ArrowDownward, SOFT_WHITE, WidgetIslandContent.speedText(data.downBytesPerSecond))
         }
         // The current connection and what it moved today: Wi-Fi or mobile data, whichever the device is on.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -766,11 +766,8 @@ private const val IDLE_WIDGET_MIN_DP = 20f
 /** Cutouts up to this wide (dp) count as the small circle. The narrowest portrait pill is wider (76 dp). */
 internal const val IDLE_WIDGET_COMPACT_MAX_DP = 60f
 
-private val AMBER = Color(0xFFFBBF24)
-private val ORANGE = Color(0xFFFF9F0A)
 private val GREEN = Color(0xFF34C759)
 private val RED = Color(0xFFFF453A)
-private val SKY = Color(0xFF38BDF8)
 private val SOFT_WHITE = Color(0xFFE5E7EB)
 
 /**
@@ -1351,9 +1348,9 @@ internal fun IdleWidgetIcon(kind: IdleWidgetKind, frame: IdleWidgetFrame, size: 
         }
         IdleWidgetKind.Wind -> Icons.Rounded.Air to SOFT_WHITE
         IdleWidgetKind.Battery -> batteryIcon(data.batteryPercent, data.charging)
-        IdleWidgetKind.NextAlarm -> Icons.Rounded.Alarm to ORANGE
+        IdleWidgetKind.NextAlarm -> Icons.Rounded.Alarm to SOFT_WHITE
         IdleWidgetKind.NetSpeed ->
-            if (data.speedIsUpload) Icons.Rounded.ArrowUpward to ORANGE else Icons.Rounded.ArrowDownward to SKY
+            if (data.speedIsUpload) Icons.Rounded.ArrowUpward to SOFT_WHITE else Icons.Rounded.ArrowDownward to SOFT_WHITE
         IdleWidgetKind.Notifications -> Icons.Rounded.Notifications to SOFT_WHITE
         IdleWidgetKind.Modes -> modeFallbackIcon(data.mode.kind) to SOFT_WHITE
     }
@@ -1495,7 +1492,7 @@ private fun AttentionGlyph(icon: ImageVector, attention: GlyphAttention, size: D
                         scaleX = AttentionStates.glowScale(breath)
                         scaleY = AttentionStates.glowScale(breath)
                     }
-                    .background(Brush.radialGradient(listOf(ORANGE, Color.Transparent)), CircleShape)
+                    .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)), CircleShape)
             )
         }
         Icon(
@@ -1600,11 +1597,11 @@ internal fun IdleWidgetValue(kind: IdleWidgetKind, frame: IdleWidgetFrame, compa
                 at - data.nowMs > DAY_MS -> weekdayFormat.format(Date(at))
                 else -> timeFormat.format(Date(at))
             }
-            color = ORANGE
+            color = SOFT_WHITE
         }
         IdleWidgetKind.NetSpeed -> {
             text = IdleWidgets.shortSpeed(data.speedBytesPerSecond)
-            color = if (data.speedIsUpload) ORANGE else SKY
+            color = if (data.speedIsUpload) SOFT_WHITE else SOFT_WHITE
         }
         IdleWidgetKind.Notifications -> text = NotificationCounts.badgeText(data.notificationSummary.total)
         // The small circle has no room for a name: the mode's own glyph is drawn there instead ([IdleWidgetCompact]).
@@ -1636,12 +1633,12 @@ private fun sameCalendarDay(a: Long, b: Long): Boolean {
 }
 
 internal fun weatherIcon(look: WeatherLook, isDay: Boolean): Pair<ImageVector, Color> = when (look) {
-    WeatherLook.Clear -> if (isDay) Icons.Rounded.WbSunny to AMBER else Icons.Rounded.NightsStay to SOFT_WHITE
-    WeatherLook.PartlyCloudy -> Icons.Rounded.WbCloudy to (if (isDay) AMBER else SOFT_WHITE)
+    WeatherLook.Clear -> if (isDay) Icons.Rounded.WbSunny to SOFT_WHITE else Icons.Rounded.NightsStay to SOFT_WHITE
+    WeatherLook.PartlyCloudy -> Icons.Rounded.WbCloudy to (if (isDay) SOFT_WHITE else SOFT_WHITE)
     WeatherLook.Cloudy, WeatherLook.Fog -> Icons.Rounded.Cloud to SOFT_WHITE
-    WeatherLook.Rain -> Icons.Rounded.WaterDrop to SKY
-    WeatherLook.Snow -> Icons.Rounded.AcUnit to SKY
-    WeatherLook.Storm -> Icons.Rounded.Bolt to AMBER
+    WeatherLook.Rain -> Icons.Rounded.WaterDrop to SOFT_WHITE
+    WeatherLook.Snow -> Icons.Rounded.AcUnit to SOFT_WHITE
+    WeatherLook.Storm -> Icons.Rounded.Bolt to SOFT_WHITE
 }
 
 private fun batteryIcon(percent: Int, charging: Boolean): Pair<ImageVector, Color> = when {

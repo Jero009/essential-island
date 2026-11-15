@@ -129,7 +129,7 @@ fun IslandCollapsedContent(
                         Icon(
                             Icons.Rounded.Call,
                             contentDescription = null,
-                            tint = Color(settings.callColor),
+                            tint = LocalIslandPalette.current.text,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -178,18 +178,18 @@ fun IslandCollapsedContent(
                     HotspotCollapsedGlyph(notification = notification, settings = settings)
                 }
                 IslandMode.Bluetooth -> {
-                    val connectionAccent = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification?.category, settings.bluetoothColor)
+                    val connectionAccent = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification?.category, LocalIslandPalette.current.text)
                     Box(
                         modifier = Modifier
                             .size(22.dp)
                             .clip(CircleShape)
-                            .background(connectionAccent.copy(alpha = 0.2f)),
+                            .background(LocalIslandPalette.current.tint(0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             com.jero009.essentialisland.ui.expanded.connectivityLeadingIcon(notification?.category),
                             contentDescription = "Connection",
-                            tint = connectionAccent,
+                            tint = LocalIslandPalette.current.text,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -199,13 +199,13 @@ fun IslandCollapsedContent(
                         modifier = Modifier
                             .size(22.dp)
                             .clip(CircleShape)
-                            .background(Color(settings.flashlightColor).copy(alpha = 0.25f)),
+                            .background(LocalIslandPalette.current.tint(0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Rounded.FlashlightOn,
                             contentDescription = "Flashlight",
-                            tint = Color(settings.flashlightColor),
+                            tint = LocalIslandPalette.current.text,
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -299,7 +299,7 @@ fun IslandCollapsedContent(
                 IslandMode.Flashlight -> {
                     Text(
                         text = "ON",
-                        color = Color(0xFFFACC15),
+                        color = LocalIslandPalette.current.text,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -332,13 +332,13 @@ internal fun HotspotCollapsedGlyph(notification: IslandNotification?, settings: 
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(hotspotColor.copy(alpha = 0.2f)),
+            .background(LocalIslandPalette.current.tint(0.12f)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Rounded.WifiTethering,
             contentDescription = "Hotspot",
-            tint = hotspotColor,
+            tint = LocalIslandPalette.current.text,
             modifier = Modifier.size(15.dp)
         )
     }
@@ -622,14 +622,14 @@ internal fun NavigationCollapsedGlyph(notification: IslandNotification?, setting
         Icon(
             imageVector = Icons.Rounded.LocationOn,
             contentDescription = "Destination",
-            tint = navColor,
+            tint = LocalIslandPalette.current.text,
             modifier = Modifier.size(18.dp)
         )
     } else {
         Icon(
             imageVector = Icons.Rounded.Navigation,
             contentDescription = "Turn direction",
-            tint = navColor,
+            tint = LocalIslandPalette.current.text,
             modifier = Modifier
                 .size(18.dp)
                 .rotate(angle)
@@ -870,13 +870,13 @@ internal fun TimerCollapsedGlyph(notification: IslandNotification?, settings: Sm
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(timerColor.copy(alpha = 0.2f)),
+            .background(LocalIslandPalette.current.tint(0.12f)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Rounded.HourglassBottom,
             contentDescription = "Timer",
-            tint = timerColor,
+            tint = LocalIslandPalette.current.text,
             modifier = Modifier
                 .size(13.dp)
                 .graphicsLayer {
@@ -907,13 +907,13 @@ internal fun StopwatchCollapsedGlyph(notification: IslandNotification?, settings
         modifier = Modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(stopwatchColor.copy(alpha = 0.2f)),
+            .background(LocalIslandPalette.current.tint(0.12f)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Rounded.AvTimer,
             contentDescription = "Stopwatch",
-            tint = stopwatchColor,
+            tint = LocalIslandPalette.current.text,
             modifier = Modifier
                 .size(14.dp)
                 .graphicsLayer { rotationZ = rotation }
@@ -1157,7 +1157,7 @@ fun BluetoothCollapsedRight(
         // Same glyph as the expanded card: looping arcs while connected, slashed and still when lost. Portrait pill
         // and landscape cutout alike.
         com.jero009.essentialisland.ui.expanded.WifiArcs(
-            accent = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification.category, settings.bluetoothColor),
+            accent = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification.category, LocalIslandPalette.current.text),
             lost = notification.category == "wifi_disconnected",
             modifier = Modifier.size(20.dp)
         )
@@ -1168,7 +1168,7 @@ fun BluetoothCollapsedRight(
         com.jero009.essentialisland.ui.expanded.SlashableIcon(
             imageVector = com.jero009.essentialisland.ui.expanded.connectivityIcon(notification?.category),
             contentDescription = "Connection",
-            tint = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification?.category, settings.bluetoothColor),
+            tint = com.jero009.essentialisland.ui.expanded.connectivityAccent(notification?.category, LocalIslandPalette.current.text),
             slashed = com.jero009.essentialisland.ui.expanded.isUnpluggedWired(notification?.category),
             modifier = Modifier.size(20.dp)
         )
@@ -1206,7 +1206,7 @@ fun BluetoothCollapsedRight(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    val batteryColor = if (batteryLevel <= 20) Color(0xFFEF4444) else Color(0xFF10B981)
+                    val batteryColor = if (batteryLevel <= 20) LocalIslandPalette.current.danger else LocalIslandPalette.current.text
                     val batteryIcon = when {
                         batteryLevel >= 80 -> Icons.Rounded.BatteryFull
                         batteryLevel >= 40 -> Icons.Rounded.Battery5Bar
@@ -1237,7 +1237,7 @@ fun BluetoothCollapsedRight(
                     Icon(
                         imageVector = Icons.Rounded.Headphones,
                         contentDescription = "Earbuds",
-                        tint = Color(settings.bluetoothColor),
+                        tint = LocalIslandPalette.current.text,
                         modifier = Modifier.size(13.dp)
                     )
                 }
