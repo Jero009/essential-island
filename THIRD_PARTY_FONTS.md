@@ -4,12 +4,20 @@ Subsetted to Latin (other scripts fall back to the phone's font).
 
 | Font | Files | Licence |
 |---|---|---|
+| Geist (Vercel / Basement Studio) | `res/font/geist_variable.ttf` (variable) | SIL Open Font License 1.1 |
+| Geist Mono (Vercel / Basement Studio) | `res/font/geist_mono_variable.ttf` (variable) | SIL Open Font License 1.1 |
+| Doto (Óliver Lalan) | `res/font/doto_variable.ttf` (variable) | SIL Open Font License 1.1 |
 | Inter Display (Rasmus Andersson) | `res/font/inter_display_*.otf` | SIL Open Font License 1.1 |
 | Lora (Cyreal) | `res/font/lora_*.ttf` | SIL Open Font License 1.1 |
 | Poppins (Indian Type Foundry) | `res/font/poppins_*.ttf` | SIL Open Font License 1.1 |
 
-All bundled fonts are free to use, change and redistribute under the SIL Open Font License 1.1
-(<https://openfontlicense.org>).
+Geist, Geist Mono and Doto are the Nothing OS-style stand-ins: Geist for UI text, Geist Mono for
+monospace readouts, Doto for dot-matrix numerals. All are free to use, change and redistribute
+under the SIL Open Font License 1.1 (<https://openfontlicense.org>). No proprietary Nothing
+typefaces (NDot, NType, Lettera Mono) are bundled.
+
+Doto is drawn at a capped weight (≈500) so its dots stay separate and round; heavier requests
+render at 500.
 
 ## Your own fonts
 

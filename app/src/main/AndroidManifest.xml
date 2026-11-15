@@ -77,12 +77,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
-        android:theme="@style/Theme.SmartIsland">
+        android:theme="@style/Theme.EssentialIsland">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SmartIsland">
+            android:theme="@style/Theme.EssentialIsland">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -98,7 +98,7 @@
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|uiMode|density|fontScale|layoutDirection|locale"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.SmartIsland.Picker" />
+            android:theme="@style/Theme.EssentialIsland.Picker" />
 
         <service
             android:name=".service.SmartIslandOverlayService"

@@ -22,6 +22,7 @@ debug-helper/
 captures/
 
 # Signing and local secrets
+keystore/
 *.jks
 *.keystore
 *_base64.txt

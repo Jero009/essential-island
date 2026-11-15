@@ -12,7 +12,7 @@ plugins {
 }
 
 android {
-    namespace = "com.agupta07505.smartisland.baselineprofile"
+    namespace = "com.jero009.essentialisland.baselineprofile"
     compileSdk = 36
 
     defaultConfig {

@@ -5,6 +5,8 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -14,25 +16,34 @@ plugins {
     id("androidx.baselineprofile")
 }
 
-val signingStoreFile = providers.environmentVariable("SIGNING_STORE_FILE")
-val signingStorePassword = providers.environmentVariable("SIGNING_STORE_PASSWORD")
-val signingKeyAlias = providers.environmentVariable("SIGNING_KEY_ALIAS")
-val signingKeyPassword = providers.environmentVariable("SIGNING_KEY_PASSWORD")
+// Release signing: keystore/keystore.properties (gitignored) when present,
+// upstream CI env vars as fallback, unsigned release otherwise.
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore/keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+val signingStoreFile = providers.provider { keystoreProps.getProperty("storeFile") }
+    .orElse(providers.environmentVariable("SIGNING_STORE_FILE"))
+val signingStorePassword = providers.provider { keystoreProps.getProperty("storePassword") }
+    .orElse(providers.environmentVariable("SIGNING_STORE_PASSWORD"))
+val signingKeyAlias = providers.provider { keystoreProps.getProperty("keyAlias") }
+    .orElse(providers.environmentVariable("SIGNING_KEY_ALIAS"))
+val signingKeyPassword = providers.provider { keystoreProps.getProperty("keyPassword") }
+    .orElse(providers.environmentVariable("SIGNING_KEY_PASSWORD"))
 val hasReleaseSigning = signingStoreFile.isPresent &&
     signingStorePassword.isPresent &&
     signingKeyAlias.isPresent &&
     signingKeyPassword.isPresent
 
 android {
-    namespace = "com.agupta07505.smartisland"
+    namespace = "com.jero009.essentialisland"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.agupta07505.smartisland"
+        applicationId = "com.jero009.essentialisland"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "7.6.0"
+        versionCode = 10
+        versionName = "1.0.0"
     }
 
     buildFeatures {

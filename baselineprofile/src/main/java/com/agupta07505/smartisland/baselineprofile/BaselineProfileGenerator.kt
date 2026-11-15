@@ -5,7 +5,7 @@
  * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
  */
 
-package com.agupta07505.smartisland.baselineprofile
+package com.jero009.essentialisland.baselineprofile
 
 import android.os.SystemClock
 import androidx.benchmark.macro.junit4.BaselineProfileRule
@@ -100,7 +100,7 @@ class BaselineProfileGenerator {
     }
 
     private companion object {
-        const val PACKAGE = "com.agupta07505.smartisland"
+        const val PACKAGE = "com.jero009.essentialisland"
         const val LAB_TIMEOUT_MS = 6 * 60_000L
     }
 }
