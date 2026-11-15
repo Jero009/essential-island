@@ -1263,7 +1263,9 @@ class SmartIslandSettingsRepository(private val context: Context) {
         it[Keys.IslandFont] = if (SmartIslandSettings.isValidFont(value)) value else SmartIslandSettings.Default.islandFont
     }
     suspend fun setFaceUnlockMode(value: String) = editSafely {
-        it[Keys.FaceUnlockMode] = if (value == "any") "any" else "face_only"
+        // must accept every FaceUnlockMode id — an unknown value falls back to face_only,
+        // but fingerprint_only is a real mode and must persist
+        it[Keys.FaceUnlockMode] = if (value in setOf("face_only", "any", "fingerprint_only")) value else "face_only"
     }
     suspend fun setFaceIdStyle(value: String) = editSafely {
         it[Keys.FaceIdStyle] = if (value == "cutout" || value == "square_tick") value else "square"
