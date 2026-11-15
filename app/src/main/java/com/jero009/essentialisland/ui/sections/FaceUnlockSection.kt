@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,6 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FaceUnlockSection(
     settings: SmartIslandSettings,
@@ -113,21 +115,29 @@ fun FaceUnlockSection(
                 color = MaterialTheme.colorScheme.primary
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = mode == FaceUnlockMode.FaceOnly,
-                    onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.FaceOnly.id) } },
-                    label = { Text("Face unlock only") }
-                )
-                FilterChip(
-                    selected = mode == FaceUnlockMode.Any,
-                    onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.Any.id) } },
-                    label = { Text("Any unlock") }
-                )
-                FilterChip(
-                    selected = mode == FaceUnlockMode.FingerprintOnly,
-                    onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.FingerprintOnly.id) } },
-                    label = { Text("Fingerprint only") }
-                )
+                // Three chips overflow a narrow card in a plain Row — "Fingerprint only" ends up
+                // clipped off-screen and untappable. FlowRow wraps them to the next line instead.
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = 3
+                ) {
+                    FilterChip(
+                        selected = mode == FaceUnlockMode.FaceOnly,
+                        onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.FaceOnly.id) } },
+                        label = { Text("Face unlock only") }
+                    )
+                    FilterChip(
+                        selected = mode == FaceUnlockMode.Any,
+                        onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.Any.id) } },
+                        label = { Text("Any unlock") }
+                    )
+                    FilterChip(
+                        selected = mode == FaceUnlockMode.FingerprintOnly,
+                        onClick = { scope.launch { repository.setFaceUnlockMode(FaceUnlockMode.FingerprintOnly.id) } },
+                        label = { Text("Fingerprint only") }
+                    )
+                }
             }
             Text(
                 text = "Capture face unlock log",
