@@ -1235,7 +1235,7 @@ fun BluetoothCollapsedRight(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Headphones,
+                        imageVector = if (notification?.category == "bt_earbuds") com.jero009.essentialisland.ui.EarbudsGlyph else Icons.Rounded.Headphones,
                         contentDescription = "Earbuds",
                         tint = LocalIslandPalette.current.text,
                         modifier = Modifier.size(13.dp)

@@ -278,14 +278,13 @@ fun BluetoothExpanded(
                         modifier = Modifier
                             .size(46.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(settings.bluetoothColor).copy(alpha = 0.12f))
-                            .border(1.dp, Color(settings.bluetoothColor).copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                            .background(LocalIslandPalette.current.tint(0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Headphones,
+                            imageVector = if (notification?.category == "bt_earbuds") com.jero009.essentialisland.ui.EarbudsGlyph else Icons.Rounded.Headphones,
                             contentDescription = "Earbuds",
-                            tint = Color(settings.bluetoothColor),
+                            tint = LocalIslandPalette.current.text,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -313,6 +312,8 @@ internal fun connectivityIcon(category: String?): androidx.compose.ui.graphics.v
     "usb_disconnected" -> Icons.Rounded.Usb
     "headphones_connected" -> Icons.Rounded.Headphones
     "headphones_disconnected" -> Icons.Rounded.Headphones
+    "bt_earbuds" -> com.jero009.essentialisland.ui.EarbudsGlyph
+    "bt_headphones" -> Icons.Rounded.Headphones
     else -> Icons.Rounded.BluetoothConnected
 }
 
