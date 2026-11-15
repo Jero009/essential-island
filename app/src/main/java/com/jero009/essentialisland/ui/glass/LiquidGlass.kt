@@ -37,8 +37,8 @@ val LocalGlassBackdropColors = staticCompositionLocalOf<GlassBackdropColors?> { 
 /** True when the glass theme is drawn in its dark variant (the rim and glare strengths differ). */
 val LocalGlassDark = staticCompositionLocalOf { false }
 
-private val FringeLit = Color(0xFFD6F1FF)
-private val FringeFar = Color(0xFFFFD9F4)
+private val FringeLit = Color(0x40FFFFFF)
+private val FringeFar = Color(0x14FFFFFF)
 
 /**
  * The edge of a glass panel, drawn over its content: a hairline rim (bright at the top left, nearly gone in the

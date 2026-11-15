@@ -79,21 +79,36 @@ fun Card(
     )
 }
 
-/** Switch colours of the glass theme: a white thumb on the accent track, and a faint glass track when off. */
+/**
+ * Switch colours, measured from Nothing OS 5.0 (dark): ON = #F2F2F2 track with a black knob (inversion,
+ * never coloured), OFF = a recessed dark track with the mid-grey #929292 knob. Light mode inverts the fill.
+ */
 @Composable
-fun glassSwitchColors(): SwitchColors =
-    if (LocalLiquidGlass.current) {
+fun glassSwitchColors(): SwitchColors {
+    val dark = LocalGlassDark.current
+    return if (dark) {
         SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = MaterialTheme.colorScheme.primary,
+            checkedThumbColor = Color(0xFF000000),
+            checkedTrackColor = Color(0xFFF2F2F2),
             checkedBorderColor = Color.Transparent,
-            uncheckedThumbColor = Color.White.copy(alpha = 0.96f),
-            uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f),
-            uncheckedBorderColor = MaterialTheme.colorScheme.outline
+            uncheckedThumbColor = Color(0xFF929292),
+            uncheckedTrackColor = Color.White.copy(alpha = 0.06f),
+            uncheckedBorderColor = Color.Transparent,
+            disabledCheckedThumbColor = Color(0xFF000000).copy(alpha = 0.38f),
+            disabledCheckedTrackColor = Color(0xFFF2F2F2).copy(alpha = 0.38f),
+            disabledUncheckedThumbColor = Color(0xFF929292).copy(alpha = 0.38f)
         )
     } else {
-        SwitchDefaults.colors()
+        SwitchDefaults.colors(
+            checkedThumbColor = Color.White,
+            checkedTrackColor = Color(0xFF1C1C1C),
+            checkedBorderColor = Color.Transparent,
+            uncheckedThumbColor = Color(0xFF929292),
+            uncheckedTrackColor = Color.Black.copy(alpha = 0.06f),
+            uncheckedBorderColor = Color.Transparent
+        )
     }
+}
 
 @Composable
 fun Switch(

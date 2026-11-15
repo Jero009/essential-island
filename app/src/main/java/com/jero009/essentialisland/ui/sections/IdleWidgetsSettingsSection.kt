@@ -20,6 +20,8 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.graphics.Color
+import com.jero009.essentialisland.ui.LocalNothingAccent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -619,20 +621,21 @@ private fun WidgetSelectorDialog(
 
 @Composable
 private fun KindIcon(kind: IdleWidgetKind, checked: Boolean) {
-    val tint = kindTint(kind)
+    // Selected cell = the choosable accent fill with dark content (Nothing selection, never a per-kind hue).
     Box(
         modifier = Modifier
             .size(34.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (checked) tint.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                if (checked) LocalNothingAccent.current
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
             ),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = kindIcon(kind),
             contentDescription = null,
-            tint = if (checked) tint else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            tint = if (checked) Color(0xFF000000) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.size(18.dp)
         )
     }

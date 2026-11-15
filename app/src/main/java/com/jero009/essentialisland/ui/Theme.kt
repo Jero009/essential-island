@@ -7,7 +7,6 @@
 
 package com.jero009.essentialisland.ui
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,20 +14,17 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.graphics.ColorUtils
 import com.jero009.essentialisland.R
 import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.ui.glass.GlassBackdropColors
@@ -37,50 +33,65 @@ import com.jero009.essentialisland.ui.glass.LocalGlassBackdropColors
 import com.jero009.essentialisland.ui.glass.LocalGlassDark
 import com.jero009.essentialisland.ui.glass.LocalLiquidGlass
 
-// The app's theme: Material 3 colour roles, built from one accent colour (or from the wallpaper with Material You),
-// drawn either flat (plain Material 3) or as liquid glass (translucent panels over a soft colour backdrop, see
-// ui/glass).
+// The app's theme: a Nothing OS colour system. One monochrome token set (measured from Nothing OS 5.0 —
+// see docs in THIRD_PARTY_FONTS.md / README): true-black page, a single grey surface family, white-ink
+// hierarchy, hairline borders. Active states are inversions (primary = white fill / black content), never
+// coloured. Red exists only as the error/signal channel. The choosable accent (Nothing Yellow by default)
+// travels outside the scheme in [LocalNothingAccent] and may colour progress / selected fills only.
+// Dynamic colour (Material You) is intentionally not used: a wallpaper-derived palette would break the
+// predominantly monochrome Nothing character.
 
-private fun hsl(hue: Float, sat: Float, light: Float): Color {
-    val h = ((hue % 360f) + 360f) % 360f
-    return Color(ColorUtils.HSLToColor(floatArrayOf(h, sat.coerceIn(0f, 1f), light.coerceIn(0f, 1f))))
-}
+/** The choosable expression accent (Nothing Yellow #FFC700 by default). Progress / selected fills only. */
+val LocalNothingAccent = staticCompositionLocalOf { Color(0xFFFFC700) }
+
+/** Convenience accessor for the accent in composable default arguments and bodies. */
+@Composable
+fun nothingAccent(): Color = LocalNothingAccent.current
+
+/** Geist Mono — numerals / mono readouts (SIL OFL 1.1, bundled). A variable font (wght axis). */
+val NothingMonoFontFamily = FontFamily(
+    Font(R.font.geist_mono_variable, FontWeight.Normal),
+    Font(R.font.geist_mono_variable, FontWeight.Medium),
+    Font(R.font.geist_mono_variable, FontWeight.SemiBold),
+    Font(R.font.geist_mono_variable, FontWeight.Bold)
+)
+
+// Nothing OS signal red: errors, destructive actions, needs-attention. Never chrome, never decoration.
+internal val NothingRed = Color(0xFFD71921)
 
 /**
- * A full Material 3 colour scheme grown from [seed]: primary, secondary (the same hue, calmer) and tertiary (a warm-
- * shifted hue) families plus neutrals that lean slightly towards the seed's hue, so surfaces never look grey next to
- * the accent.
+ * The Nothing OS colour scheme. Dark (measured): page #000000, surfaces #1B1B1B / elevated #1F1F1F / #242424,
+ * ink white at 100% / 55% / dim, hairline borders white 12% strong and 8% soft, switch-knob mid grey #929292.
+ * Light: page #F1F1F1, cards #FCFCFC, ink #0A0A0A. Every "control" role is a greyscale inversion, so M3
+ * switches, buttons and checkboxes render as Nothing inversions without per-screen work.
  */
-internal fun accentColorScheme(seed: Color, dark: Boolean): ColorScheme {
-    val hsl = FloatArray(3)
-    ColorUtils.colorToHSL(seed.toArgb(), hsl)
-    val h = hsl[0]
-    val s = hsl[1].coerceIn(0.40f, 0.95f)
-    val h3 = h + 58f
-    // Nothing OS neutrals: surfaces and ink are fixed monochrome values (measured from Nothing OS 5.0); only the
-    // primary / secondary / tertiary families stay derived from the accent seed.
+internal fun nothingColorScheme(dark: Boolean): ColorScheme {
     return if (!dark) {
         lightColorScheme(
-            primary = hsl(h, s, 0.42f),
+            primary = Color(0xFF0A0A0A),
             onPrimary = Color.White,
-            primaryContainer = hsl(h, s * 0.95f, 0.91f),
-            onPrimaryContainer = hsl(h, s, 0.16f),
-            secondary = hsl(h, s * 0.40f, 0.40f),
+            primaryContainer = Color(0xFFE2E2E2),
+            onPrimaryContainer = Color(0xFF0A0A0A),
+            secondary = Color(0xFF0A0A0A),
             onSecondary = Color.White,
-            secondaryContainer = hsl(h, s * 0.50f, 0.91f),
-            onSecondaryContainer = hsl(h, s * 0.55f, 0.15f),
-            tertiary = hsl(h3, s * 0.60f, 0.42f),
+            secondaryContainer = Color(0xFFE7E7E7),
+            onSecondaryContainer = Color(0xFF0A0A0A),
+            tertiary = Color(0xFF0A0A0A),
             onTertiary = Color.White,
-            tertiaryContainer = hsl(h3, s * 0.65f, 0.91f),
-            onTertiaryContainer = hsl(h3, s * 0.70f, 0.15f),
+            tertiaryContainer = Color(0xFFE2E2E2),
+            onTertiaryContainer = Color(0xFF0A0A0A),
+            error = NothingRed,
+            onError = Color.White,
+            errorContainer = Color(0xFF3A0F12),
+            onErrorContainer = Color(0xFFFFD9D9),
             background = Color(0xFFF1F1F1),
             onBackground = Color(0xFF0A0A0A),
             surface = Color(0xFFFCFCFC),
             onSurface = Color(0xFF0A0A0A),
             surfaceVariant = Color(0xFFF1F1F1),
-            onSurfaceVariant = Color.Black.copy(alpha = 0.5f),
-            surfaceTint = hsl(h, s, 0.42f),
-            outline = Color.Black.copy(alpha = 0.14f),
+            onSurfaceVariant = Color.Black.copy(alpha = 0.55f),
+            surfaceTint = Color(0xFFFCFCFC),
+            outline = Color(0xFF737373),
             outlineVariant = Color.Black.copy(alpha = 0.08f),
             surfaceBright = Color.White,
             surfaceDim = Color(0xFFDCDCDC),
@@ -91,37 +102,41 @@ internal fun accentColorScheme(seed: Color, dark: Boolean): ColorScheme {
             surfaceContainerHighest = Color(0xFFE2E2E2)
         )
     } else {
-        // Nothing OS dark surfaces: true-black page, one grey surface family (#1B1B1B), white-ink hierarchy,
-        // hairline borders (white 12% strong / 8% soft). Only the accent families stay colour-derived.
         darkColorScheme(
-            primary = hsl(h, s, 0.74f),
-            onPrimary = hsl(h, s, 0.14f),
-            primaryContainer = hsl(h, s * 0.60f, 0.26f),
-            onPrimaryContainer = hsl(h, s * 0.75f, 0.90f),
-            secondary = hsl(h, s * 0.45f, 0.76f),
-            onSecondary = hsl(h, s * 0.5f, 0.14f),
-            secondaryContainer = hsl(h, s * 0.35f, 0.25f),
-            onSecondaryContainer = hsl(h, s * 0.50f, 0.90f),
-            tertiary = hsl(h3, s * 0.55f, 0.76f),
-            onTertiary = hsl(h3, s * 0.5f, 0.14f),
-            tertiaryContainer = hsl(h3, s * 0.40f, 0.26f),
-            onTertiaryContainer = hsl(h3, s * 0.55f, 0.90f),
+            // Active-state inversion: primary is the ON / selected fill (white) with black content.
+            primary = Color.White,
+            onPrimary = Color.Black,
+            primaryContainer = Color(0xFF242424),
+            onPrimaryContainer = Color.White,
+            secondary = Color.White,
+            onSecondary = Color.Black,
+            secondaryContainer = Color(0xFF242424),
+            onSecondaryContainer = Color.White,
+            tertiary = Color.White,
+            onTertiary = Color.Black,
+            tertiaryContainer = Color(0xFF242424),
+            onTertiaryContainer = Color.White,
+            error = NothingRed,
+            onError = Color.White,
+            errorContainer = Color(0xFF3A0F12),
+            onErrorContainer = Color(0xFFFFD9D9),
             background = Color(0xFF000000),
             onBackground = Color.White,
             surface = Color(0xFF1B1B1B),
             onSurface = Color.White,
             surfaceVariant = Color(0xFF1B1B1B),
             onSurfaceVariant = Color.White.copy(alpha = 0.55f),
-            surfaceTint = hsl(h, s, 0.74f),
-            outline = Color.White.copy(alpha = 0.12f),
+            surfaceTint = Color(0xFF1B1B1B),
+            // Mid grey: the OFF switch knob and text-field borders (measured #929292).
+            outline = Color(0xFF929292),
             outlineVariant = Color.White.copy(alpha = 0.08f),
-            surfaceBright = Color(0xFF2A2A2A),
+            surfaceBright = Color(0xFF242424),
             surfaceDim = Color(0xFF0A0A0A),
             surfaceContainerLowest = Color(0xFF0F0F0F),
             surfaceContainerLow = Color(0xFF161616),
             surfaceContainer = Color(0xFF1B1B1B),
-            surfaceContainerHigh = Color(0xFF242424),
-            surfaceContainerHighest = Color(0xFF2C2C2C)
+            surfaceContainerHigh = Color(0xFF1F1F1F),
+            surfaceContainerHighest = Color(0xFF242424)
         )
     }
 }
@@ -163,6 +178,7 @@ private fun geistTypography(): Typography {
  * The glass version of a scheme: the same colours, but the page background is clear (the backdrop is drawn behind
  * it), the panels (surface, surfaceVariant, surfaceContainer) are see-through so the backdrop tints them, and the
  * roles that dialogs, menus and sheets sit on stay nearly solid, so text over a dimmed screen stays readable.
+ * The scheme is monochrome, so the frost stays neutral grey — Nothing OS 5 never tints app pages.
  */
 internal fun ColorScheme.asGlass(dark: Boolean): ColorScheme = copy(
     background = Color.Transparent,
@@ -182,11 +198,11 @@ fun SmartIslandTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     /** "system" follows [darkTheme]; "light" / "dark" force one. */
     themeMode: String = "system",
-    /** Liquid glass look (translucent panels over a colour backdrop). Off gives plain Material 3. */
+    /** Liquid glass look (translucent panels over a neutral backdrop). Off gives the flat Nothing look. */
     liquidGlass: Boolean = SmartIslandSettings.Default.liquidGlassTheme,
-    /** Colours from the phone's wallpaper (Android 12+). Off builds the palette from [accentColor]. */
-    materialYou: Boolean = SmartIslandSettings.Default.materialYou,
-    /** The accent colour (ARGB) the palette is built from when Material You is off. */
+    /** Unused: dynamic (wallpaper) colour is disabled — the Nothing scheme is monochrome by design. */
+    @Suppress("UNUSED_PARAMETER") materialYou: Boolean = SmartIslandSettings.Default.materialYou,
+    /** The choosable accent (ARGB) for progress / selected fills. Nothing Yellow by default. */
     accentColor: Long = SmartIslandSettings.Default.accentColor,
     content: @Composable () -> Unit
 ) {
@@ -196,14 +212,8 @@ fun SmartIslandTheme(
         "dark" -> true
         else -> darkTheme
     }
-    val solid = remember(materialYou, accentColor, useDark, context) {
-        if (materialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (useDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        } else {
-            accentColorScheme(Color(accentColor.toInt()), useDark)
-        }
-    }
-    val colorScheme = if (liquidGlass) solid.asGlass(useDark) else solid
+    val colorScheme = remember(useDark) { nothingColorScheme(useDark).let { if (liquidGlass) it.asGlass(useDark) else it } }
+    val accent = remember(accentColor) { Color(accentColor.toInt()) }
 
     // Keep the status / navigation bar icons readable when the chosen theme differs from the phone's.
     val view = androidx.compose.ui.platform.LocalView.current
@@ -221,19 +231,26 @@ fun SmartIslandTheme(
         typography = remember { geistTypography() }
     ) {
         CompositionLocalProvider(
+            LocalNothingAccent provides accent,
             LocalLiquidGlass provides liquidGlass,
             LocalGlassDark provides useDark,
-            LocalGlassBackdropColors provides remember(solid) {
-                GlassBackdropColors(solid.background, solid.primary, solid.tertiary, solid.secondary)
+            // Neutral frost: the glows are plain white, so the glass backdrop stays monochrome.
+            LocalGlassBackdropColors provides remember(colorScheme) {
+                GlassBackdropColors(
+                    base = if (useDark) Color(0xFF000000) else Color(0xFFF1F1F1),
+                    glowA = Color.White.copy(alpha = 0.10f),
+                    glowB = Color.White.copy(alpha = 0.06f),
+                    glowC = Color.White.copy(alpha = 0.08f)
+                )
             }
         ) {
             if (liquidGlass) {
                 Box(Modifier.fillMaxSize()) {
                     LiquidGlassBackdrop(
-                        base = solid.background,
-                        glowA = solid.primary,
-                        glowB = solid.tertiary,
-                        glowC = solid.secondary,
+                        base = if (useDark) Color(0xFF000000) else Color(0xFFF1F1F1),
+                        glowA = Color.White.copy(alpha = 0.10f),
+                        glowB = Color.White.copy(alpha = 0.06f),
+                        glowC = Color.White.copy(alpha = 0.08f),
                         dark = useDark
                     )
                     content()

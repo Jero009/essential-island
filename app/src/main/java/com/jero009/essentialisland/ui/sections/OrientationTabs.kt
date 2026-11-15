@@ -42,7 +42,7 @@ fun OrientationTabs(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(Color(0xFF141414))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -52,7 +52,7 @@ fun OrientationTabs(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .background(if (isSelected) Color(0xFF303030) else Color.Transparent)
                     .clickable { onSelected(tab) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center

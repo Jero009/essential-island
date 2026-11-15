@@ -39,8 +39,9 @@ fun ClickableRowItem(
     icon: ImageVector,
     subtitle: String? = null,
     value: String? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-    iconBg: Color = iconTint.copy(alpha = 0.12f),
+    // Nothing OS rows: monochrome ink, no coloured icon chips. The accent never paints rows.
+    iconTint: Color = MaterialTheme.colorScheme.onSurface,
+    iconBg: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
     onClick: () -> Unit
 ) {
     Row(
@@ -53,14 +54,14 @@ fun ClickableRowItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f)
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
@@ -68,7 +69,7 @@ fun ClickableRowItem(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
             Column {

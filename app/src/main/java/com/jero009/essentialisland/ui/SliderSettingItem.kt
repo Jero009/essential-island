@@ -100,9 +100,9 @@ fun SliderSettingItem(
                 ) {
                     Text(
                         text = valueText?.invoke(value) ?: "${value.roundToInt()} $suffix",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = NothingMonoFontFamily),
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 11.sp
                     )
                 }
@@ -135,9 +135,10 @@ fun SliderSettingItem(
             onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                // The one accent surface: progress fill + thumb in the chosen hue, dark content on it.
+                thumbColor = nothingAccent(),
+                activeTrackColor = nothingAccent(),
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
             )
         )
     }

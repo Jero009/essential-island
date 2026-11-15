@@ -242,17 +242,8 @@ internal fun kindIcon(kind: IdleWidgetKind): ImageVector = when (kind) {
 }
 
 internal fun kindTint(kind: IdleWidgetKind): Color = when (kind) {
-    IdleWidgetKind.Clock -> Color(0xFF6366F1)
-    IdleWidgetKind.LiveClock -> Color(0xFF14B8A6)
-    IdleWidgetKind.Date -> Color(0xFFEF4444)
-    IdleWidgetKind.Weather -> Color(0xFFF59E0B)
-    IdleWidgetKind.Wind -> Color(0xFF5EEAD4)
-    IdleWidgetKind.Battery -> Color(0xFF10B981)
-    IdleWidgetKind.NextAlarm -> Color(0xFFFF9F0A)
-    IdleWidgetKind.NetSpeed -> Color(0xFF38BDF8)
-    IdleWidgetKind.DayMoments -> Color(0xFFFB923C)
-    IdleWidgetKind.Notifications -> Color(0xFF3B82F6)
-    IdleWidgetKind.Modes -> Color(0xFF8B5CF6)
+    // The Nothing OS app UI is monochrome: every widget kind uses the same ink (kept for callers).
+    else -> Color.White
 }
 
 internal fun kindTitle(kind: IdleWidgetKind): Int = when (kind) {

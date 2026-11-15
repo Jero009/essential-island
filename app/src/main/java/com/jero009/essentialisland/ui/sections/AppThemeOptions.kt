@@ -7,7 +7,6 @@
 
 package com.jero009.essentialisland.ui.sections
 
-import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,10 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -92,33 +91,20 @@ private fun hueOf(argb: Long): Float {
 fun AppThemeOptions(
     settings: SmartIslandSettings,
     onLiquidGlassChange: (Boolean) -> Unit,
-    onMaterialYouChange: (Boolean) -> Unit,
     onAccentChange: (Long) -> Unit
 ) {
-    val dynamicAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val usingDynamic = settings.materialYou && dynamicAvailable
     Column {
         ThemeToggleRow(
-            title = "Vibrant colors",
-            subtitle = "Translucent glass panels with a lit rim over a soft colour backdrop. Off gives the flat Material look.",
+            title = "Liquid glass",
+            subtitle = "Translucent glass panels over a neutral backdrop. Off gives the flat Nothing look (measured OS 5 behaviour).",
             checked = settings.liquidGlassTheme,
             onChange = onLiquidGlassChange
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        if (dynamicAvailable) {
-            ThemeToggleRow(
-                title = "Material You colours",
-                subtitle = "Take the colours from your wallpaper instead of the accent colour below.",
-                checked = settings.materialYou,
-                onChange = onMaterialYouChange
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-                .alpha(if (usingDynamic) 0.40f else 1f),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Column {
@@ -129,7 +115,7 @@ fun AppThemeOptions(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = if (usingDynamic) "Not used while Material You is on." else "Pick a Material colour. The whole app palette is built from it.",
+                    text = "Used for progress, sliders and selected states only. Buttons, switches and text stay monochrome.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -142,13 +128,13 @@ fun AppThemeOptions(
                             color = argb.toComposeColor(),
                             name = name,
                             selected = selected == argb,
-                            enabled = !usingDynamic,
+                            enabled = true,
                             onClick = { onAccentChange(argb) }
                         )
                     }
                 }
             }
-            CustomHueSlider(accent = selected, enabled = !usingDynamic, onAccentChange = onAccentChange)
+            CustomHueSlider(accent = selected, enabled = true, onAccentChange = onAccentChange)
         }
     }
 }
@@ -186,7 +172,9 @@ private fun AccentSwatch(color: Color, name: String, selected: Boolean, enabled:
         contentAlignment = Alignment.Center
     ) {
         if (selected) {
-            Icon(Icons.Rounded.Check, contentDescription = "$name, selected", tint = Color.White, modifier = Modifier.size(20.dp))
+            // Dark content on light swatches, white on dark ones (contrast rule for on-accent content).
+            val checkTint = if (color.luminance() > 0.5f) Color.Black else Color.White
+            Icon(Icons.Rounded.Check, contentDescription = "$name, selected", tint = checkTint, modifier = Modifier.size(20.dp))
         }
     }
 }

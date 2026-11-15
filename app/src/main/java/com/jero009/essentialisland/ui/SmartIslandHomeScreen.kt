@@ -126,6 +126,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -551,7 +552,6 @@ fun SmartIslandHomeScreen(
                                     scope.launch { resolvedRepository.setThemeMode(mode) }
                                 },
                                 onLiquidGlassChange = { on -> scope.launch { resolvedRepository.setLiquidGlassTheme(on) } },
-                                onMaterialYouChange = { on -> scope.launch { resolvedRepository.setMaterialYou(on) } },
                                 onAccentChange = { argb -> scope.launch { resolvedRepository.setAccentColor(argb) } },
                                 onIslandFontChange = { font ->
                                     scope.launch { resolvedRepository.setIslandFont(font) }
@@ -696,8 +696,9 @@ private fun StudioTopHeader(
         }
 
         val statusColor = when {
-            !canEnable -> Color(0xFFE88C25)
-            isIslandEnabled -> Color(0xFF0F9F6E)
+            // Needs-attention is the one signal: Nothing red. Everything else is greyscale ink.
+            !canEnable -> NothingRed
+            isIslandEnabled -> MaterialTheme.colorScheme.onSurface
             else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         }
         val statusText = when {
@@ -800,7 +801,7 @@ private fun MasterPowerCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onSetupPermissionsClick)
-                    .background(Color(0xFFE88C25).copy(alpha = 0.08f))
+                    .background(NothingRed.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -811,12 +812,12 @@ private fun MasterPowerCard(
                     Icon(
                         Icons.Rounded.Warning,
                         contentDescription = null,
-                        tint = Color(0xFFE88C25),
+                        tint = NothingRed,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
                         text = stringResource(R.string.btn_grant_required_permissions),
-                        color = Color(0xFFE88C25),
+                        color = NothingRed,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -862,11 +863,13 @@ private fun ThemeModeSelector(selected: String, onSelected: (String) -> Unit) {
 
 @Composable
 private fun SetupChip(label: String, granted: Boolean, onClick: () -> Unit) {
-    val color = if (granted) Color(0xFF0F9F6E) else Color(0xFFE88C25)
+    // Granted = mid ink on a faint tile; missing = the Nothing signal red. Nothing else.
+    val color = if (granted) MaterialTheme.colorScheme.onSurfaceVariant else NothingRed
+    val bg = if (granted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) else NothingRed.copy(alpha = 0.12f)
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(color.copy(alpha = 0.12f))
+            .background(bg)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -894,7 +897,6 @@ private fun SettingsOverviewSection(
     batteryIgnored: Boolean,
     onThemeModeChange: (String) -> Unit,
     onLiquidGlassChange: (Boolean) -> Unit,
-    onMaterialYouChange: (Boolean) -> Unit,
     onAccentChange: (Long) -> Unit,
     onIslandFontChange: (String) -> Unit,
     onFontMixChange: (Boolean, String, String, String) -> Unit,
@@ -908,7 +910,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_permissions_setup_title),
                 subtitle = "Accessibility, notification access, battery",
                 icon = Icons.Rounded.Shield,
-                iconColor = BadgeGreen,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 statusText = if (!canEnable) stringResource(R.string.status_action_required) else null,
                 statusColor = if (canEnable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateTo(FeatureDetailSection.PermissionsCenter) }
@@ -918,7 +920,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_backup_restore_title),
                 subtitle = "Export or import all settings",
                 icon = Icons.Rounded.SettingsBackupRestore,
-                iconColor = BadgeBlue,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.BackupRestore) }
             )
 
@@ -926,7 +928,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_updates_downloads_title),
                 subtitle = "Check GitHub releases and download updates",
                 icon = Icons.Rounded.Download,
-                iconColor = BadgeTeal,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.UpdatesAndDownloads) }
             )
 
@@ -934,7 +936,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_support_requests_title),
                 subtitle = "Report issues, feature requests & community",
                 icon = Icons.Rounded.People,
-                iconColor = BadgePink,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.SupportCommunity) }
             )
 
@@ -942,7 +944,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_developer_options_title),
                 subtitle = "Diagnostics, log recording & developer options",
                 icon = Icons.Rounded.Code,
-                iconColor = BadgeSlate,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 statusText = if (settings.recordLogs) "Recording" else null,
                 statusColor = MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateTo(FeatureDetailSection.DeveloperOptions) }
@@ -952,7 +954,7 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_about_title),
                 subtitle = stringResource(R.string.card_about_subtitle),
                 icon = Icons.Rounded.Info,
-                iconColor = BadgeSlate,
+                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.About) }
             )
         }
@@ -972,7 +974,6 @@ private fun SettingsOverviewSection(
                 com.jero009.essentialisland.ui.sections.AppThemeOptions(
                     settings = settings,
                     onLiquidGlassChange = onLiquidGlassChange,
-                    onMaterialYouChange = onMaterialYouChange,
                     onAccentChange = onAccentChange
                 )
 
@@ -980,7 +981,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_color_studio_title),
                     subtitle = "Colours, opacity, gradients and card styles",
                     icon = Icons.Rounded.Palette,
-                    iconColor = BadgeViolet,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = stringResource(R.string.card_color_studio_status, (settings.opacity * 100).toInt()),
                     onClick = { onNavigateTo(FeatureDetailSection.ColorStudio) }
                 )
@@ -1013,7 +1014,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_notification_history_title),
                     subtitle = "Browse notifications the island has shown",
                     icon = Icons.Rounded.History,
-                    iconColor = BadgeIndigo,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.enableNotificationHistory) stringResource(R.string.card_notification_history_status_active) else null,
                     statusColor = if (settings.enableNotificationHistory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.NotificationHistory) }
@@ -1023,7 +1024,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_app_shortcuts_title),
                     subtitle = "Launch favourite apps from the island",
                     icon = Icons.Rounded.Apps,
-                    iconColor = BadgeTeal,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.enableAppShortcuts) {
                         stringResource(R.string.card_app_shortcuts_status, settings.shortcutPackages.size)
                     } else null,
@@ -1038,7 +1039,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_gestures_guide_title),
                     subtitle = "Swipes, taps, long press, sensitivity and vibration",
                     icon = Icons.Rounded.Gesture,
-                    iconColor = BadgePink,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.GesturesGuide) }
                 )
 
@@ -1046,7 +1047,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.idle_widgets_title),
                     subtitle = stringResource(R.string.card_idle_widgets_subtitle),
                     icon = Icons.Rounded.Widgets,
-                    iconColor = BadgeAmber,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.idleWidgetsEnabled || settings.idleWidgetsEnabledLandscape) {
                         stringResource(R.string.status_active)
                     } else null,
@@ -1058,7 +1059,7 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_timing_title),
                     subtitle = stringResource(R.string.card_timing_subtitle),
                     icon = Icons.Rounded.Timer,
-                    iconColor = BadgeSky,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.Timing) }
                 )
             }
@@ -1075,27 +1076,18 @@ private fun SettingsCategoryGroup(
     content: @Composable () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Nothing OS section kicker: uppercase, small, mid-weight, wide tracking (+0.16em), mid ink.
         Text(
             text = title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.16.em),
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 0.8.sp,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp)
         )
         content()
     }
 }
 
-private val BadgeIndigo = Color(0xFF6366F1)
-private val BadgeTeal = Color(0xFF14B8A6)
-private val BadgePink = Color(0xFFEC4899)
-private val BadgeAmber = Color(0xFFF59E0B)
-private val BadgeSky = Color(0xFF0EA5E9)
-private val BadgeViolet = Color(0xFF8B5CF6)
-private val BadgeBlue = Color(0xFF3B82F6)
-private val BadgeSlate = Color(0xFF64748B)
-private val BadgeGreen = Color(0xFF16A34A)
 
 @Composable
 private fun FeatureStudioNavigationCard(

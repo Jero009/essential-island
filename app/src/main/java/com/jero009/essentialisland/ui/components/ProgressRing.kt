@@ -9,6 +9,7 @@ package com.jero009.essentialisland.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import com.jero009.essentialisland.ui.LocalNothingAccent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -26,7 +27,8 @@ import androidx.compose.ui.unit.dp
 fun ProgressRing(
     progress: Float,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF10B981),
+    // Progress is accent territory (choosable hue, Nothing Yellow by default).
+    color: Color = LocalNothingAccent.current,
     strokeWidth: Dp = 2.dp
 ) {
     Canvas(modifier = modifier) {

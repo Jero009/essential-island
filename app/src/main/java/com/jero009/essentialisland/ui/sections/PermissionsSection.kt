@@ -211,7 +211,7 @@ fun PermissionsSection(
                             Text(
                                 text = shizukuStateText,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (ShizukuManager.hasPermission()) Color(0xFF0F9F6E) else MaterialTheme.colorScheme.primary,
+                                color = if (ShizukuManager.hasPermission()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -335,7 +335,7 @@ fun PermissionsSection(
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (sensitiveAllowed) Color(0xFF2E9E5B) else MaterialTheme.colorScheme.error
+                    color = if (sensitiveAllowed) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
                 )
                 OutlinedButton(
                     enabled = !isExecutingShizuku && !isChecking,
@@ -378,7 +378,7 @@ fun PermissionsSection(
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = when (outcome) {
-                                ShizukuMethodCheck.Outcome.Works -> Color(0xFF2E9E5B)
+                                ShizukuMethodCheck.Outcome.Works -> MaterialTheme.colorScheme.onSurface
                                 ShizukuMethodCheck.Outcome.Missing -> MaterialTheme.colorScheme.error
                                 ShizukuMethodCheck.Outcome.NotTested -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
@@ -438,8 +438,8 @@ fun PermissionsSection(
             onClick = onBatteryClick
         )
 
-        val warningIconColor = if (isOverlayWarningDisabled) Color(0xFF0F9F6E) else MaterialTheme.colorScheme.onSurfaceVariant
-        val warningBgColor = if (isOverlayWarningDisabled) Color(0xFF0F9F6E).copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
+        val warningIconColor = if (isOverlayWarningDisabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        val warningBgColor = if (isOverlayWarningDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -486,12 +486,12 @@ fun PermissionsSection(
                                 Spacer(Modifier.height(3.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFF0F9F6E).copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp))
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "Configured",
-                                        color = Color(0xFF0F9F6E),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -527,8 +527,8 @@ fun PermissionsSection(
             }
         }
 
-        val oemIconColor = if (isOemAutostartEnabled) Color(0xFF0F9F6E) else MaterialTheme.colorScheme.tertiary
-        val oemBgColor = if (isOemAutostartEnabled) Color(0xFF0F9F6E).copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+        val oemIconColor = if (isOemAutostartEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        val oemBgColor = if (isOemAutostartEnabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -575,12 +575,12 @@ fun PermissionsSection(
                                 Spacer(Modifier.height(3.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFF0F9F6E).copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp))
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "Configured",
-                                        color = Color(0xFF0F9F6E),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )

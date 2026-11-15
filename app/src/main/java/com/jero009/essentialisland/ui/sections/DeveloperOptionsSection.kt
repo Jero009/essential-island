@@ -7,6 +7,7 @@
 
 package com.jero009.essentialisland.ui.sections
 
+import com.jero009.essentialisland.ui.NothingRed
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -176,7 +177,7 @@ fun DeveloperOptionsSection(
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    if (settings.recordLogs) Color(0xFFEF4444).copy(alpha = 0.15f)
+                                    if (settings.recordLogs) NothingRed.copy(alpha = 0.15f)
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 ),
                             contentAlignment = Alignment.Center
@@ -184,7 +185,7 @@ fun DeveloperOptionsSection(
                             Icon(
                                 imageVector = if (settings.recordLogs) Icons.Rounded.RadioButtonChecked else Icons.Rounded.BugReport,
                                 contentDescription = null,
-                                tint = if (settings.recordLogs) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (settings.recordLogs) NothingRed else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -219,7 +220,7 @@ fun DeveloperOptionsSection(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (settings.recordLogs) Color(0xFFEF4444).copy(alpha = 0.10f)
+                            if (settings.recordLogs) NothingRed.copy(alpha = 0.10f)
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                         .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -234,14 +235,14 @@ fun DeveloperOptionsSection(
                             modifier = Modifier
                                 .size(10.dp)
                                 .clip(CircleShape)
-                                .background(if (settings.recordLogs) Color(0xFFEF4444) else Color(0xFF94A3B8))
+                                .background(if (settings.recordLogs) NothingRed else Color(0xFF929292))
                         )
                         Text(
                             text = if (settings.recordLogs) stringResource(R.string.status_recording_active)
                             else stringResource(R.string.status_recording_idle),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (settings.recordLogs) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (settings.recordLogs) NothingRed else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(

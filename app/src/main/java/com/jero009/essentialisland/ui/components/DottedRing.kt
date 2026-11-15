@@ -9,6 +9,7 @@ package com.jero009.essentialisland.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import com.jero009.essentialisland.ui.LocalNothingAccent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -19,7 +20,8 @@ fun DottedRing(
     progress: Float,
     rotationAngle: Float,
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF10B981)
+    // Progress is accent territory (choosable hue, Nothing Yellow by default).
+    color: Color = LocalNothingAccent.current
 ) {
     Canvas(modifier = modifier) {
         val radius = size.minDimension / 2f

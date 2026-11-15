@@ -115,9 +115,9 @@ data class SmartIslandSettings(
     /** Whether a fingerprint unlock plays the fingerprint scan animation (lock screen and app prompts). */
     val fingerprintAnimationEnabled: Boolean = true,
     /** App theme: "system" (follow the phone), "light" or "dark". */
-    val themeMode: String = "system",
+    val themeMode: String = "dark",
     /** App theme: the liquid glass look (translucent glass panels over a soft colour backdrop). Off gives the flat Material 3 look. */
-    val liquidGlassTheme: Boolean = true,
+    val liquidGlassTheme: Boolean = false,
     /** App theme: take the colours from the phone's wallpaper (Material You, Android 12+). Off uses [accentColor]. */
     val materialYou: Boolean = false,
     /** App theme: the accent colour (ARGB) the whole palette is built from when Material You is off. */
