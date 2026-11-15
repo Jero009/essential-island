@@ -47,8 +47,8 @@ class IslandPalette private constructor(val isLight: Boolean) {
     val chipFill: Color = if (isLight) Color(0xFFD9D8DB) else Color(0xFFE2E8F0)
     val chipText: Color = Color(0xFF1F2937)
 
-    /** Accent colours that must stay readable on the surface. */
-    val accentCyan: Color = if (isLight) Color(0xFF0058CB) else Color(0xFF67E8F9)
+    /** Formerly a cyan accent — now monochrome ink: Nothing keeps icons single-colour (white on dark, black on light). */
+    val accentCyan: Color = if (isLight) Color(0xFF0A0A0A) else Color(0xFFFFFFFF)
     val danger: Color = if (isLight) Color(0xFFB91C1C) else Color(0xFFEF4444)
     val success: Color = if (isLight) Color(0xFF047857) else Color(0xFF10B981)
     val warning: Color = if (isLight) Color(0xFFA04A08) else Color(0xFFF59E0B)

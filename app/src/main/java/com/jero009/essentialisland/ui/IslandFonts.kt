@@ -164,8 +164,16 @@ private fun slotFont(context: Context, id: String, slot: FontSlot, weight: Int):
  * bold the Regular slot's, bold and heavier the Medium slot's.
  */
 internal fun mixedFontFamily(context: Context, islandFont: String, light: String, regular: String, medium: String): FontFamily {
+    // Geist rule: when any slot (or the main island font) is Geist/Geist Mono, the dot-matrix font is
+    // dropped everywhere — Doto only renders when the user explicitly picks it with no Geist in play.
+    val effectiveMedium =
+        if (medium == SmartIslandSettings.FONT_DOTO &&
+            listOf(light, regular, islandFont).any {
+                it == SmartIslandSettings.FONT_GEIST || it == SmartIslandSettings.FONT_GEIST_MONO
+            }
+        ) "" else medium
     val fonts = FontSlot.entries.flatMap { slot ->
-        val id = FontMix.effectiveId(FontMix.idOf(slot, light, regular, medium), islandFont)
+        val id = FontMix.effectiveId(FontMix.idOf(slot, light, regular, effectiveMedium), islandFont)
         slot.weights.map { weight -> slotFont(context, id, slot, weight) }
     }
     return FontFamily(fonts)

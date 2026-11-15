@@ -133,7 +133,7 @@ data class SmartIslandSettings(
     /** Font for medium and semi-bold text; empty = the island font. */
     val fontMixRegular: String = "",
     /** Font for bold and heavier text; empty = the island font. */
-    val fontMixMedium: String = FONT_DOTO,
+    val fontMixMedium: String = "",
     val enableNotchMode: Boolean = false,
     /** Manual camera cutout area, for phones where the hardware detection fails. Used by the expanded island's close target. */
     val cameraCutoutManual: Boolean = false,
