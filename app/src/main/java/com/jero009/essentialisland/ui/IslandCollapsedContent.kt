@@ -11,7 +11,10 @@ import com.jero009.essentialisland.util.HotspotUtil
 import com.jero009.essentialisland.util.TimerStopwatchParser
 import com.jero009.essentialisland.ui.components.BatteryCutoutBadge
 import com.jero009.essentialisland.ui.components.batteryVisualColor
+import com.jero009.essentialisland.ui.components.rememberBatteryPulse
+import com.jero009.essentialisland.ui.components.BatteryVisual
 import com.jero009.essentialisland.ui.components.resolveBatteryVisual
+import com.jero009.essentialisland.ui.expanded.LocalIslandPalette
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -32,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material.icons.Icons
@@ -358,12 +362,22 @@ private fun HotspotCollapsedRight(notification: IslandNotification?, settings: S
 internal fun BatteryCollapsedGlyph(notification: IslandNotification?, settings: SmartIslandSettings) {
     val pct = notification?.text?.replace("%", "")?.trim()?.toFloatOrNull() ?: 49f
     val visual = resolveBatteryVisual(notification?.category, notification?.title, pct)
-    BatteryCutoutBadge(
-        visual = visual,
-        progress = (pct / 100f).coerceIn(0f, 1f),
-        color = batteryVisualColor(visual, Color(settings.batteryColor)),
-        boxSize = 24.dp
-    )
+    // Nothing theme: no battery glyph in the pill — a tiny flat bar, same language as the expanded card.
+    val pulse = rememberBatteryPulse(visual)
+    Box(
+        modifier = Modifier
+            .width(18.dp)
+            .height(4.dp)
+            .background(LocalIslandPalette.current.tint(0.12f), RoundedCornerShape(2.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth((pct / 100f).coerceIn(0f, 1f))
+                .height(4.dp)
+                .graphicsLayer { alpha = if (visual == BatteryVisual.Low) pulse.value else 1f }
+                .background(batteryVisualColor(visual, Color(settings.batteryColor)), RoundedCornerShape(2.dp))
+        )
+    }
 }
 
 @Composable

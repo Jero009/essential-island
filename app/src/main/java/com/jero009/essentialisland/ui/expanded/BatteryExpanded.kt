@@ -12,17 +12,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -31,15 +26,10 @@ import com.jero009.essentialisland.ui.IslandText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -47,13 +37,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.model.IslandNotification
-import com.jero009.essentialisland.ui.components.BatteryBadge
 import com.jero009.essentialisland.ui.components.BatteryVisual
 import com.jero009.essentialisland.ui.components.batteryVisualColor
 import com.jero009.essentialisland.ui.components.rememberBatteryPulse
 import com.jero009.essentialisland.ui.components.resolveBatteryVisual
 import com.jero009.essentialisland.util.runCatchingLogged
 
+/**
+ * Minimal Nothing battery card: the percentage on the left, one muted status line, and a flat
+ * stadium bar on the right. No badge, no battery glyph, no gradients — nothing theme.
+ */
 @Composable
 fun BatteryExpanded(
     notification: IslandNotification,
@@ -67,10 +60,6 @@ fun BatteryExpanded(
 
     val visual = resolveBatteryVisual(notification.category, notification.title, pct)
     val batteryColor = batteryVisualColor(visual, Color(settings.batteryColor))
-    // The bar's sheen goes toward white on the dark island and toward black on the light one (a white sheen would vanish on pale).
-    val lightLook = LocalIslandPalette.current.isLight
-    val midBatteryColor = if (lightLook) lerp(batteryColor, Color.Black, 0.12f) else lerp(batteryColor, Color.White, 0.35f)
-    val lightestBatteryColor = if (lightLook) lerp(batteryColor, Color.Black, 0.24f) else lerp(batteryColor, Color.White, 0.65f)
     val pulse = rememberBatteryPulse(visual)
 
     val animatedProgress = remember { Animatable(0f) }
@@ -81,12 +70,7 @@ fun BatteryExpanded(
         )
     }
 
-    val barColors = remember(batteryColor, midBatteryColor, lightestBatteryColor) {
-        listOf(batteryColor, midBatteryColor, lightestBatteryColor, midBatteryColor, batteryColor)
-    }
-    val barShape = RoundedCornerShape(6.dp)
-
-    val timeText = remember(pct, visual) {
+    val statusText = remember(pct, visual) {
         if (visual == BatteryVisual.PluggedIn) {
             "Charger connected"
         } else if (visual == BatteryVisual.PluggedOut) {
@@ -125,105 +109,42 @@ fun BatteryExpanded(
             .fillMaxWidth()
             .wrapContentHeight()
             .padding(start = 18.dp, top = 20.dp, end = 18.dp, bottom = bottomPadding)
-            .heightIn(min = 72.dp, max = 110.dp),
+            .height(72.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            BatteryBadge(
-                visual = visual,
-                progress = progress,
-                color = batteryColor,
-                pulse = pulse,
-                boxSize = 46.dp,
-                iconSize = 20.dp,
-                disc = true
+        // Left: the percentage, big and quiet; one muted status line under it.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "${pct.toInt()}%",
+                color = LocalIslandPalette.current.text,
+                fontWeight = FontWeight.Medium,
+                fontSize = 30.sp,
+                lineHeight = 32.sp,
+                maxLines = 1
             )
-
-            Column {
-                Text(
-                    text = notification.title.takeIf { it.isNotBlank() } ?: when (visual) {
-                        BatteryVisual.Saver -> "Battery Saver ON"
-                        BatteryVisual.Low -> "Low Battery"
-                        BatteryVisual.PluggedIn -> "Plugged in"
-                        BatteryVisual.PluggedOut -> "Unplugged"
-                        BatteryVisual.Full -> "Fully Charged"
-                    },
-                    color = LocalIslandPalette.current.text,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    maxLines = 1
-                )
-                Text(
-                    text = "${pct.toInt()}%",
-                    color = batteryColor,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    lineHeight = 22.sp
-                )
-                Text(
-                    text = timeText,
-                    color = LocalIslandPalette.current.textMuted,
-                    fontSize = 11.sp,
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = statusText,
+                color = LocalIslandPalette.current.textMuted,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        // Right: one flat bar. Track = faint white, fill = battery colour (red when low).
+        // Low battery pulses; everything else is still — mechanical, Nothing.
+        Box(
+            modifier = Modifier
+                .width(88.dp)
+                .height(6.dp)
+                .background(LocalIslandPalette.current.tint(0.12f), RoundedCornerShape(3.dp))
         ) {
             Box(
                 modifier = Modifier
-                    .width(72.dp)
-                    .height(32.dp)
-                    .border(1.5.dp, LocalIslandPalette.current.tint(0.2f), RoundedCornerShape(8.dp))
-                    .background(LocalIslandPalette.current.tint(0.1f), RoundedCornerShape(8.dp))
-                    .padding(2.5.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(animatedProgress.value)
-                        .graphicsLayer { alpha = if (visual == BatteryVisual.Low) pulse.value else 1f }
-                        .drawBehind {
-                            val x = 0f
-                            drawOutline(
-                                outline = barShape.createOutline(size, layoutDirection, this),
-                                brush = Brush.horizontalGradient(
-                                    colors = barColors,
-                                    startX = x,
-                                    endX = x + 300f,
-                                    tileMode = TileMode.Repeated
-                                )
-                            )
-                        }
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(LocalIslandPalette.current.tint(0.15f), Color.Transparent),
-                                startY = 0f,
-                                endY = 40f
-                            ),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                )
-            }
-            Spacer(modifier = Modifier.width(3.dp))
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(12.dp)
-                    .background(LocalIslandPalette.current.tint(0.4f), shape = RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
+                    .fillMaxWidth(animatedProgress.value)
+                    .height(6.dp)
+                    .graphicsLayer { alpha = if (visual == BatteryVisual.Low) pulse.value else 1f }
+                    .background(batteryColor, RoundedCornerShape(3.dp))
             )
         }
     }
