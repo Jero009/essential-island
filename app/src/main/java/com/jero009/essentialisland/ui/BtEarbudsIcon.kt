@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 /**
- * Two-pod earbuds glyph, drawn to match the rounded headphones glyph: a circular head per pod with a
- * short stem below. Tinted like any other vector icon.
+ * Two-pod earbuds glyph: rounded heads tilted toward the middle, thick stems flaring outward at the
+ * bottom — the V silhouette of TWS earbuds. Tinted like any other vector icon.
  */
 val EarbudsGlyph: ImageVector = ImageVector.Builder(
     name = "EarbudsGlyph",
@@ -24,38 +24,37 @@ val EarbudsGlyph: ImageVector = ImageVector.Builder(
     viewportWidth = 24f,
     viewportHeight = 24f
 ).apply {
-    // left pod head
+    // left pod head (tilted toward the centre)
     path(fill = SolidColor(Color.Black), stroke = null) {
-        moveTo(11.3f, 8.6f)
-        arcTo(3.0f, 3.0f, 0f, false, true, 5.3f, 8.6f)
-        arcTo(3.0f, 3.0f, 0f, false, true, 11.3f, 8.6f)
+        moveTo(12.4f, 8.4f)
+        arcTo(3.5f, 3.5f, 0f, false, true, 5.4f, 8.4f)
+        arcTo(3.5f, 3.5f, 0f, false, true, 12.4f, 8.4f)
         close()
     }
     // right pod head
     path(fill = SolidColor(Color.Black), stroke = null) {
-        moveTo(18.7f, 8.6f)
-        arcTo(3.0f, 3.0f, 0f, false, true, 12.7f, 8.6f)
-        arcTo(3.0f, 3.0f, 0f, false, true, 18.7f, 8.6f)
+        moveTo(18.6f, 8.4f)
+        arcTo(3.5f, 3.5f, 0f, false, true, 11.6f, 8.4f)
+        arcTo(3.5f, 3.5f, 0f, false, true, 18.6f, 8.4f)
         close()
     }
-    // left stem
+    // stems flare outward from under each head, thick with round caps
     path(
         fill = null,
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.6f,
+        strokeLineWidth = 3.4f,
         strokeLineCap = StrokeCap.Round
     ) {
-        moveTo(8.3f, 11.4f)
-        lineTo(8.3f, 17.8f)
+        moveTo(8.9f, 11.2f)
+        lineTo(7.2f, 17.8f)
     }
-    // right stem
     path(
         fill = null,
         stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2.6f,
+        strokeLineWidth = 3.4f,
         strokeLineCap = StrokeCap.Round
     ) {
-        moveTo(15.7f, 11.4f)
-        lineTo(15.7f, 17.8f)
+        moveTo(15.1f, 11.2f)
+        lineTo(16.8f, 17.8f)
     }
 }.build()
