@@ -63,6 +63,14 @@ import com.jero009.essentialisland.model.IslandNotification
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.jero009.essentialisland.util.NothingAnc
+import com.jero009.essentialisland.util.NothingAncClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun BluetoothExpanded(
@@ -95,10 +103,71 @@ fun BluetoothExpanded(
         else -> Icons.Rounded.BatteryAlert
     }
 
+    // ANC on/off (Nothing / CMF audio only): reads the live mode over the vendor RFCOMM channel on open,
+    // toggles ANC <-> Off on tap. Hidden entirely for unsupported devices.
+    val ancSupported = (notification?.category == "bt_earbuds" || notification?.category == "bt_headphones") &&
+        NothingAnc.isSupportedDevice(deviceName)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var ancMode by remember { mutableStateOf<Int?>(null) }
+    var ancBusy by remember { mutableStateOf(false) }
+
+    LaunchedEffect(deviceName, ancSupported) {
+        if (!ancSupported) return@LaunchedEffect
+        ancBusy = true
+        ancMode = withContext(Dispatchers.IO) {
+            val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
+            val client = NothingAncClient(device)
+            try {
+                if (!client.connect()) return@withContext null
+                client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) }
+            } finally {
+                client.close()
+            }
+        }
+        ancBusy = false
+    }
+
+    fun toggleAnc() {
+        if (ancBusy) return
+        val target = if ((ancMode ?: NothingAnc.MODE_OFF) in 1..4) NothingAnc.MODE_OFF else NothingAnc.MODE_ANC
+        scope.launch {
+            ancBusy = true
+            val newMode = withContext(Dispatchers.IO) {
+                val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
+                val client = NothingAncClient(device)
+                try {
+                    if (!client.connect()) return@withContext null
+                    if (!client.writeAnc(target)) return@withContext null
+                    client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) } ?: target
+                } finally {
+                    client.close()
+                }
+            }
+            if (newMode != null) ancMode = newMode
+            ancBusy = false
+        }
+    }
+
+    val ancActive = (ancMode ?: NothingAnc.MODE_OFF) in 1..4
+    val ancLabel = when {
+        ancBusy -> "…"
+        ancMode == null -> "N/A"
+        ancMode == 4 -> "Adaptive"
+        ancActive -> "ANC On"
+        ancMode == NothingAnc.MODE_TRANSPARENCY -> "Transparency"
+        else -> "Off"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = bottomPadding)
+    ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = bottomPadding),
+            .padding(start = 18.dp, top = 14.dp, end = 18.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -298,6 +367,41 @@ fun BluetoothExpanded(
                     .size(46.dp)
                     .clip(RoundedCornerShape(12.dp))
             )
+        }
+    }
+
+        // ANC toggle row: label on the left, inverting state chip on the right (active states invert, never colorize).
+        if (ancSupported) {
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Noise cancellation",
+                    color = LocalIslandPalette.current.text.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (ancActive) LocalIslandPalette.current.text else LocalIslandPalette.current.tint(0.12f))
+                        .clickable { toggleAnc() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = ancLabel,
+                        color = if (ancActive) Color(0xFF111111) else LocalIslandPalette.current.text.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
