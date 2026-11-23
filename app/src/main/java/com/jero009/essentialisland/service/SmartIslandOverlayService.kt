@@ -878,10 +878,18 @@ class SmartIslandOverlayService : AccessibilityService() {
                 } else {
                     null
                 }
+                com.jero009.essentialisland.util.AppLogRecorder.i(
+                    "BluetoothConnectionMonitor",
+                    "audio devices added: ${addedDevices.joinToString { it.typeName() }} → ${if (address.isNullOrBlank()) "refresh" else "prefer $address"}"
+                )
                 if (address.isNullOrBlank()) monitor.refreshNow() else monitor.prefer(address)
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<android.media.AudioDeviceInfo>) {
+                com.jero009.essentialisland.util.AppLogRecorder.i(
+                    "BluetoothConnectionMonitor",
+                    "audio devices removed: ${removedDevices.joinToString { it.typeName() }} → refresh"
+                )
                 bluetoothConnectionMonitor?.refreshNow()
             }
         }
@@ -2327,4 +2335,17 @@ class SmartIslandOverlayService : AccessibilityService() {
         private const val SETTLE_SCAN_SECOND_MS = 1_100L
         private const val WINDOW_PACKAGE_CACHE_MAX = 96
     }
+
 }
+
+/** Short name for the audio device types the Bluetooth card cares about (diagnostic log only). */
+private fun android.media.AudioDeviceInfo.typeName(): String = when (type) {
+    android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bt_a2dp"
+    android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bt_sco"
+    android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wired_headphones"
+    android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired_headset"
+    android.media.AudioDeviceInfo.TYPE_USB_HEADSET -> "usb_headset"
+    android.media.AudioDeviceInfo.TYPE_USB_DEVICE -> "usb_device"
+    else -> "type$type"
+}
+

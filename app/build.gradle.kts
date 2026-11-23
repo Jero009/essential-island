@@ -42,8 +42,8 @@ android {
         applicationId = "com.jero009.essentialisland"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.11.2"
+        versionCode = 27
+        versionName = "1.11.3"
     }
 
     buildFeatures {

@@ -19,7 +19,9 @@ import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -127,5 +129,17 @@ class BluetoothConnectionMonitorTest {
 
         monitor.refreshNow()
         assertNull(card())
+    }
+
+    /** Modern TWS headphones connect over LE Audio and never appear on A2DP — the profile must be queried. */
+    @Test
+    fun audioProfilesIncludeLeAudioOnModernAndroidsOnly() {
+        val profiles = BluetoothConnectionMonitor.audioProfiles(37)
+        assertTrue(profiles.contains(BluetoothProfile.LE_AUDIO))
+        assertTrue(profiles.contains(BluetoothProfile.A2DP))
+        assertTrue(profiles.contains(BluetoothProfile.HEADSET))
+        assertFalse(profiles.contains(BluetoothProfile.GATT))
+        assertEquals(listOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, BluetoothProfile.LE_AUDIO), profiles)
+        assertFalse(BluetoothConnectionMonitor.audioProfiles(26).contains(BluetoothProfile.LE_AUDIO))
     }
 }

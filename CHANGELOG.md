@@ -4,6 +4,15 @@ All notable changes to Smart Island should be documented in this file.
 
 The format is inspired by Keep a Changelog, and this project uses the GNU General Public License v3.0.
 
+## [1.11.3] - 2026-11-23
+
+### Fixed
+- **Headphones that connect over LE Audio now show up.** Modern TWS headphones register on the LE Audio profile (API 31+) and never appear on classic A2DP — the monitor only asked A2DP + headset, so on a Nothing OS Android 17 phone the headphones were invisible while a classic-profile watch stayed visible. The monitor and the disconnect re-check now query the LE Audio profile too (GATT stays excluded).
+- **The diagnostic log can now answer "why didn't the card show?"**: the Bluetooth path logs every decision — permission state (warns once when Nearby devices is missing), per-profile candidate counts, the chosen device with candidates and preference, card clears, and every audio-device add/remove event with its type.
+
+### Tests
+- `audioProfiles()` coverage: LE Audio included on API 31+, excluded below, GATT never present.
+
 ## [1.11.2] - 2026-11-23
 
 ### Fixed
