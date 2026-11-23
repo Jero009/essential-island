@@ -21,13 +21,15 @@ import com.jero009.essentialisland.data.INotificationRepository
 import com.jero009.essentialisland.model.IslandEvent
 import com.jero009.essentialisland.model.IslandMode
 import com.jero009.essentialisland.model.IslandNotification
+import com.jero009.essentialisland.util.BtDeviceClassifier
 import com.jero009.essentialisland.util.NotificationCooldownManager
 import com.jero009.essentialisland.util.runCatchingLogged
 
 class SystemEventReceiver(
     private val notificationRepository: INotificationRepository,
     private val settingsProvider: () -> com.jero009.essentialisland.data.SmartIslandSettings = { com.jero009.essentialisland.data.SmartIslandSettings.Default },
-    private val isBatteryCardExpanded: () -> Boolean = { false }
+    private val isBatteryCardExpanded: () -> Boolean = { false },
+    private val onBluetoothConnected: (String?) -> Unit = {}
 ) : BroadcastReceiver() {
 
     private var lastBatteryPct: Int = -1
@@ -126,6 +128,7 @@ class SystemEventReceiver(
                         ),
                         autoExpand = mayExpand(IslandEvent.BLUETOOTH, autoExpand)
                     )
+                    onBluetoothConnected(address)
                 }
                 "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED" -> {
                     val batteryLevel = intent.getIntExtra("android.bluetooth.device.extra.BATTERY_LEVEL", -1)
@@ -134,7 +137,8 @@ class SystemEventReceiver(
                         if (existing != null) {
                             notificationRepository.postNotification(
                                 existing.copy(
-                                    text = "Connected • $batteryLevel%",
+                                    // Keep the "Earbuds/Headphones connected" prefix this card was posted with.
+                                    text = existing.text.substringBefore(" • ") + " • $batteryLevel%",
                                     progress = batteryLevel,
                                     progressMax = 100
                                 ),
@@ -152,11 +156,15 @@ class SystemEventReceiver(
                     }
                     val disconnectedAddress = runCatching { disconnectedDevice?.address }.getOrNull()
 
-                    // Only dismiss when the disconnected device is the active one (or unknown), so a smartwatch
-                    // disconnecting does not remove the card while earbuds are connected.
-                    if (activeBluetoothAddress == null || disconnectedAddress == null || disconnectedAddress == activeBluetoothAddress) {
+                    // Multi-device: the card only goes away when no countable audio device is left. When the
+                    // disconnected one WAS the card's device (or the address is unknown), switch the card to a
+                    // device that is still connected instead of dismissing it.
+                    val remaining = remainingAudioDevice(context)
+                    if (remaining == null) {
                         activeBluetoothAddress = null
                         notificationRepository.removeNotification("system_bluetooth")
+                    } else if (disconnectedAddress == null || disconnectedAddress == activeBluetoothAddress) {
+                        switchCardToConnectedDevice(remaining)
                     }
                 }
                 Intent.ACTION_POWER_CONNECTED -> {
@@ -394,6 +402,52 @@ class SystemEventReceiver(
     @SuppressLint("MissingPermission")
     private fun bluetoothDeviceKind(device: BluetoothDevice?, deviceName: String): String =
         com.jero009.essentialisland.util.BtDeviceClassifier.labelFor(device, deviceName)
+
+    /**
+     * A countable audio device that is still connected after a disconnect: the card switches to it instead of
+     * dismissing. Null when nothing we count remains connected.
+     */
+    @SuppressLint("MissingPermission")
+    private fun remainingAudioDevice(context: Context): BluetoothDevice? {
+        if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) return null
+        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+            ?: return null
+        return sequenceOf(android.bluetooth.BluetoothProfile.A2DP, android.bluetooth.BluetoothProfile.HEADSET, android.bluetooth.BluetoothProfile.GATT)
+            .mapNotNull { profile -> runCatching { manager.getConnectedDevices(profile) }.getOrNull() }
+            .flatten()
+            .distinctBy { it.address }
+            .firstOrNull { candidate ->
+                val candidateName = runCatching { candidate.name }.getOrNull().orEmpty()
+                !BtDeviceClassifier.isIgnoredDevice(candidate, candidateName)
+            }
+    }
+
+    /** Posts the connection card for [remaining] (the card's device disconnected, this one is still here). */
+    @SuppressLint("MissingPermission")
+    private fun switchCardToConnectedDevice(remaining: BluetoothDevice) {
+        val name = runCatching { remaining.name }.getOrNull().takeIf { !it.isNullOrBlank() }
+            ?: "Bluetooth Device"
+        activeBluetoothAddress = runCatching { remaining.address }.getOrNull()
+        val battery = BtDeviceClassifier.batteryLevel(remaining)
+        val category = BtDeviceClassifier.category(remaining, name)
+        notificationRepository.postNotification(
+            IslandNotification(
+                key = "system_bluetooth",
+                packageName = "com.android.bluetooth",
+                appName = "Bluetooth",
+                title = name,
+                text = BtDeviceClassifier.connectedText(category, battery),
+                category = category,
+                mode = IslandMode.Bluetooth,
+                progress = if (battery in 0..100) battery else 0,
+                progressMax = 100,
+                timeMillis = System.currentTimeMillis()
+            ),
+            autoExpand = false
+        )
+    }
 
     private fun bluetoothCategory(device: BluetoothDevice?, deviceName: String): String =
         com.jero009.essentialisland.util.BtDeviceClassifier.category(device, deviceName)

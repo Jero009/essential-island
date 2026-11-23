@@ -119,6 +119,7 @@ class SmartIslandOverlayService : AccessibilityService() {
 
     private var connectivityMonitor: com.jero009.essentialisland.util.ConnectivityEventMonitor? = null
     private var bluetoothConnectionMonitor: com.jero009.essentialisland.util.BluetoothConnectionMonitor? = null
+    private var audioDeviceCallback: android.media.AudioDeviceCallback? = null
     private var wiredDeviceMonitor: com.jero009.essentialisland.util.WiredDeviceEventMonitor? = null
     private var transferSpeedMonitor: com.jero009.essentialisland.util.TransferSpeedMonitor? = null
     private var faceUnlockWatcher: com.jero009.essentialisland.util.FaceUnlockWatcher? = null
@@ -767,7 +768,9 @@ class SmartIslandOverlayService : AccessibilityService() {
             isBatteryCardExpanded = {
                 viewModel.expanded.value &&
                     viewModel.currentShownNotification()?.mode == com.jero009.essentialisland.model.IslandMode.Battery
-            }
+            },
+            // The monitor follows the device that just connected and reconciles the card at once.
+            onBluetoothConnected = { address -> bluetoothConnectionMonitor?.prefer(address) }
         )
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_POWER_CONNECTED)
@@ -851,6 +854,39 @@ class SmartIslandOverlayService : AccessibilityService() {
             repository = notificationRepository,
             settingsProvider = { viewModel.displaySettings.value }
         ).also { it.start() }
+
+        // AudioManager reports audio device add/remove reliably on every skin, unlike the ACL broadcasts:
+        // connect a device and the card appears at once (not at the next 15 s poll), following the device
+        // that was just added; a disconnect hands the card to a device that is still connected.
+        audioDeviceCallback = object : android.media.AudioDeviceCallback() {
+            @SuppressLint("MissingPermission")
+            override fun onAudioDevicesAdded(addedDevices: Array<android.media.AudioDeviceInfo>) {
+                val monitor = bluetoothConnectionMonitor ?: return
+                val address = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    addedDevices
+                        .filter {
+                            it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                                it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                        }
+                        .firstNotNullOfOrNull { device ->
+                            runCatching {
+                                if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                                ) device.address else null
+                            }.getOrNull()
+                        }
+                } else {
+                    null
+                }
+                if (address.isNullOrBlank()) monitor.refreshNow() else monitor.prefer(address)
+            }
+
+            override fun onAudioDevicesRemoved(removedDevices: Array<android.media.AudioDeviceInfo>) {
+                bluetoothConnectionMonitor?.refreshNow()
+            }
+        }
+        (getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager)
+            ?.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(android.os.Looper.getMainLooper()))
 
         // Last-resort transfer detection for apps whose own notification is blocked or missing.
         transferSpeedMonitor = com.jero009.essentialisland.util.TransferSpeedMonitor(
@@ -1166,6 +1202,13 @@ class SmartIslandOverlayService : AccessibilityService() {
         connectivityMonitor = null
         bluetoothConnectionMonitor?.stop()
         bluetoothConnectionMonitor = null
+        audioDeviceCallback?.let { callback ->
+            runCatchingLogged(TAG, "unregisterAudioDeviceCallback failed") {
+                (getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager)
+                    ?.unregisterAudioDeviceCallback(callback)
+            }
+        }
+        audioDeviceCallback = null
         wiredDeviceMonitor?.stop()
         wiredDeviceMonitor = null
         transferSpeedMonitor?.stop()

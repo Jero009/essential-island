@@ -36,6 +36,10 @@ class BluetoothConnectionMonitor(
 ) {
     private var job: Job? = null
 
+    /** The device the card should follow: the one the user connected most recently, when known. */
+    @Volatile
+    private var preferredAddress: String? = null
+
     fun start() {
         if (job != null) return
         job = scope.launch {
@@ -51,6 +55,17 @@ class BluetoothConnectionMonitor(
         job = null
     }
 
+    /** Follows [address] from now on and reconciles the card immediately instead of waiting for the next poll. */
+    fun prefer(address: String?) {
+        preferredAddress = address
+        runCatchingLogged(TAG, "bluetooth prefer-refresh failed") { tick() }
+    }
+
+    /** Reconciles the card immediately (a device may have disconnected); the poll stays as the safety net. */
+    fun refreshNow() {
+        runCatchingLogged(TAG, "bluetooth refresh failed") { tick() }
+    }
+
     private fun tick() {
         val settings = settingsProvider()
         val hasCard = repository.notifications.value.any { it.key == KEY }
@@ -61,21 +76,28 @@ class BluetoothConnectionMonitor(
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
 
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
-        val device = sequenceOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, BluetoothProfile.GATT)
+        val candidates = sequenceOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, BluetoothProfile.GATT)
             .mapNotNull { profile ->
                 runCatching { manager.getConnectedDevices(profile) }.getOrNull()
             }
             .flatten()
             .distinctBy { it.address }
-            .firstOrNull { candidate ->
+            .filter { candidate ->
                 val candidateName = runCatching { candidate.name }.getOrNull().orEmpty()
                 !BtDeviceClassifier.isIgnoredDevice(candidate, candidateName)
             }
-        if (device == null) {
+            .toList()
+        if (candidates.isEmpty()) {
             // Nothing connected (that we count): clear the card if the broadcast left one behind.
+            preferredAddress = null
             if (hasCard) repository.removeNotification(KEY)
             return
         }
+        // The most recently connected device wins; an address that has dropped off (or an unknown one,
+        // e.g. right after a process restart) falls back to whatever is still connected.
+        val preferred = preferredAddress?.let { address -> candidates.firstOrNull { it.address == address } }
+        if (preferred == null) preferredAddress = null
+        val device = preferred ?: candidates.first()
 
         val name = runCatching { device.name }.getOrNull().takeIf { !it.isNullOrBlank() } ?: "Bluetooth Device"
         val category = BtDeviceClassifier.category(device, name)

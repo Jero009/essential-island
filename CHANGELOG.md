@@ -4,6 +4,16 @@ All notable changes to Smart Island should be documented in this file.
 
 The format is inspired by Keep a Changelog, and this project uses the GNU General Public License v3.0.
 
+## [1.11.1] - 2026-11-23
+
+### Fixed
+- **Bluetooth cards react instantly and follow multiple devices.** Connecting headphones or earbuds now shows the card right away instead of at the next 15-second poll: the island listens to AudioManager's audio-device callbacks (delivered reliably on every skin, unlike the ACL broadcasts Nothing OS drops) and reconciles the card the moment a device is added or removed.
+- **Multi-device handling**: the card follows the device connected last; disconnecting one of two devices hands the card to the one still connected instead of dismissing it, and the card clears only when nothing countable remains. Smartwatches, trackers and peripherals still never own the card.
+- **Battery updates keep the device label**: "Earbuds connected • 92%" no longer flattens to "Connected • 92%" when the system pushes a battery level.
+
+### Tests
+- New multi-device suite for the connection monitor (preference, fallback, clear, ignore rules) and the receiver (two-device handover, label-preserving battery updates); the audio-device test expectations now match the v1.9 label change.
+
 ## [1.11.0] - 2026-11-23
 
 ### Highlights (v1.11.0)

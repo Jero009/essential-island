@@ -17,6 +17,7 @@ import com.jero009.essentialisland.data.SmartIslandNotificationRepository
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SystemEventReceiverTest {
@@ -183,11 +184,11 @@ class SystemEventReceiverTest {
         every { intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) } returns audioDevice
         every { intent.getIntExtra(any(), -1) } returns 85
 
-        // First connection: autoExpand = true
+        // First connection: autoExpand = true ("Galaxy Buds Pro" classifies as earbuds: the label says so)
         receiver.onReceive(context, intent)
         verify(exactly = 1) {
             repo.postNotification(
-                match { it.key == "system_bluetooth" && it.title == "Galaxy Buds Pro" && it.text == "Connected • 85%" },
+                match { it.key == "system_bluetooth" && it.title == "Galaxy Buds Pro" && it.text == "Earbuds connected • 85%" },
                 autoExpand = true
             )
         }
@@ -207,6 +208,12 @@ class SystemEventReceiverTest {
         val repo = mockk<SmartIslandNotificationRepository>(relaxed = true)
         val receiver = SystemEventReceiver(repo)
         val context = mockk<Context>()
+        // The disconnect path now re-checks what is still connected before dismissing: the audio device
+        // stays connected the whole time, so the stack keeps reporting it until it actually disconnects.
+        every { context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) } returns
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val manager = mockk<android.bluetooth.BluetoothManager>()
+        every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
 
         val audioDevice = mockk<BluetoothDevice>()
         val audioBtClass = mockk<BluetoothClass>()
@@ -215,6 +222,7 @@ class SystemEventReceiverTest {
         every { audioDevice.bluetoothClass } returns audioBtClass
         every { audioDevice.name } returns "Galaxy Buds Pro"
         every { audioDevice.address } returns "AA:BB:CC:DD:EE:01"
+        every { manager.getConnectedDevices(any()) } returns listOf(audioDevice)
 
         // Connect audio device
         val connectIntent = mockk<Intent>()
@@ -240,6 +248,7 @@ class SystemEventReceiverTest {
         verify(exactly = 0) { repo.removeNotification("system_bluetooth") }
 
         // Now the actual audio device disconnects
+        every { manager.getConnectedDevices(any()) } returns emptyList()
         val audioDisconnectIntent = mockk<Intent>()
         every { audioDisconnectIntent.action } returns BluetoothDevice.ACTION_ACL_DISCONNECTED
         every { audioDisconnectIntent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) } returns audioDevice
@@ -250,5 +259,97 @@ class SystemEventReceiverTest {
 
         // Now it SHOULD be removed
         verify(exactly = 1) { repo.removeNotification("system_bluetooth") }
+    }
+
+    /** Two audio devices: disconnecting the card's device hands the card to the one still connected. */
+    @Test
+    fun testDisconnectingOneOfTwoDevicesHandsTheCardToTheRemainingOne() {
+        val repo = SmartIslandNotificationRepository()
+        val receiver = SystemEventReceiver(repo)
+        val context = mockk<Context>()
+        every { context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) } returns
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val manager = mockk<android.bluetooth.BluetoothManager>()
+
+        val earbuds = mockk<BluetoothDevice>()
+        val earbudsClass = mockk<BluetoothClass>()
+        every { earbudsClass.majorDeviceClass } returns BluetoothClass.Device.Major.AUDIO_VIDEO
+        every { earbudsClass.deviceClass } returns BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES
+        every { earbuds.bluetoothClass } returns earbudsClass
+        every { earbuds.name } returns "Galaxy Buds Pro"
+        every { earbuds.address } returns "AA:AA:AA:AA:AA:01"
+
+        val headphones = mockk<BluetoothDevice>()
+        val headphonesClass = mockk<BluetoothClass>()
+        every { headphonesClass.majorDeviceClass } returns BluetoothClass.Device.Major.AUDIO_VIDEO
+        every { headphonesClass.deviceClass } returns BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES
+        every { headphones.bluetoothClass } returns headphonesClass
+        every { headphones.name } returns "Sony WH-1000XM5"
+        every { headphones.address } returns "BB:BB:BB:BB:BB:02"
+
+        fun connectIntentFor(device: BluetoothDevice): Intent = mockk<Intent>().also { intent ->
+            every { intent.action } returns BluetoothDevice.ACTION_ACL_CONNECTED
+            every { intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) } returns device
+            @Suppress("DEPRECATION")
+            every { intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) } returns device
+            every { intent.getIntExtra(any(), -1) } returns -1
+        }
+
+        fun disconnectIntentFor(device: BluetoothDevice): Intent = mockk<Intent>().also { intent ->
+            every { intent.action } returns BluetoothDevice.ACTION_ACL_DISCONNECTED
+            every { intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) } returns device
+            @Suppress("DEPRECATION")
+            every { intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) } returns device
+        }
+
+        // Earbuds connect, then headphones connect: the card follows the newest device.
+        every { manager.getConnectedDevices(any()) } returns listOf(headphones, earbuds)
+        every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
+        receiver.onReceive(context, connectIntentFor(earbuds))
+        receiver.onReceive(context, connectIntentFor(headphones))
+        assertEquals("Sony WH-1000XM5", repo.notifications.value.last { it.key == "system_bluetooth" }.title)
+
+        // The card's device (headphones) disconnects: the card switches to the earbuds, it is not dismissed.
+        every { manager.getConnectedDevices(any()) } returns listOf(earbuds)
+        receiver.onReceive(context, disconnectIntentFor(headphones))
+        val card = repo.notifications.value.lastOrNull { it.key == "system_bluetooth" }
+        assertEquals("Galaxy Buds Pro", card?.title)
+        assertEquals("Earbuds connected", card?.text)
+
+        // The earbuds disconnect too: only now the card goes away.
+        every { manager.getConnectedDevices(any()) } returns emptyList()
+        receiver.onReceive(context, disconnectIntentFor(earbuds))
+        assertEquals(null, repo.notifications.value.find { it.key == "system_bluetooth" })
+    }
+
+    /** A battery update keeps the "Earbuds/Headphones connected" prefix instead of flattening it to "Connected". */
+    @Test
+    fun testBatteryUpdateKeepsTheDeviceLabel() {
+        val repo = SmartIslandNotificationRepository()
+        val receiver = SystemEventReceiver(repo)
+        val context = mockk<Context>()
+
+        val device = mockk<BluetoothDevice>()
+        val deviceClass = mockk<BluetoothClass>()
+        every { deviceClass.majorDeviceClass } returns BluetoothClass.Device.Major.AUDIO_VIDEO
+        every { deviceClass.deviceClass } returns BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES
+        every { device.bluetoothClass } returns deviceClass
+        every { device.name } returns "Galaxy Buds Pro"
+        every { device.address } returns "AA:AA:AA:AA:AA:01"
+
+        val connectIntent = mockk<Intent>()
+        every { connectIntent.action } returns BluetoothDevice.ACTION_ACL_CONNECTED
+        every { connectIntent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java) } returns device
+        @Suppress("DEPRECATION")
+        every { connectIntent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) } returns device
+        every { connectIntent.getIntExtra(any(), -1) } returns 85
+        receiver.onReceive(context, connectIntent)
+        assertEquals("Earbuds connected • 85%", repo.notifications.value.last { it.key == "system_bluetooth" }.text)
+
+        val batteryIntent = mockk<Intent>()
+        every { batteryIntent.action } returns "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
+        every { batteryIntent.getIntExtra(any(), -1) } returns 92
+        receiver.onReceive(context, batteryIntent)
+        assertEquals("Earbuds connected • 92%", repo.notifications.value.last { it.key == "system_bluetooth" }.text)
     }
 }
