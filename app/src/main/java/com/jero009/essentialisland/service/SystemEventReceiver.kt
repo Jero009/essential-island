@@ -414,7 +414,8 @@ class SystemEventReceiver(
         ) return null
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
             ?: return null
-        return sequenceOf(android.bluetooth.BluetoothProfile.A2DP, android.bluetooth.BluetoothProfile.HEADSET, android.bluetooth.BluetoothProfile.GATT)
+        // Audio profiles only — GATT would keep watches and trackers in the pool around the clock.
+        return sequenceOf(android.bluetooth.BluetoothProfile.A2DP, android.bluetooth.BluetoothProfile.HEADSET)
             .mapNotNull { profile -> runCatching { manager.getConnectedDevices(profile) }.getOrNull() }
             .flatten()
             .distinctBy { it.address }

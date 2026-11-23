@@ -52,10 +52,25 @@ object BtDeviceClassifier {
         if (batteryLevel in 0..100) append(" • $batteryLevel%")
     }
 
-    /** Smartwatches, bands and HID peripherals must not hijack the island with connection cards. */
+    /**
+     * Smartwatches, bands and HID peripherals must not hijack the island with connection cards.
+     * The name decides first: several watches report an AUDIO_VIDEO Bluetooth class (they have speakers),
+     * and LE-only devices often report no class at all — either would otherwise slip past the class rules.
+     */
     @SuppressLint("MissingPermission")
     fun isIgnoredDevice(device: BluetoothDevice?, deviceName: String): Boolean {
         if (device == null) return false
+        val lower = deviceName.lowercase()
+        val wearableKeywords = listOf(
+            "watch", "smartwatch", "wear os", "fitbit", "garmin", "amazfit",
+            "whoop", "oura", "smart band", "smartband", "mi band", "miband",
+            "honor band", "huawei band", "galaxy fit", "band"
+        )
+        if (wearableKeywords.any { lower.contains(it) }) return true
+
+        val peripheralKeywords = listOf("mouse", "keyboard", "trackpad", "gamepad", "controller", "stylus", "s pen")
+        if (peripheralKeywords.any { lower.contains(it) }) return true
+
         val bluetoothClass = runCatching { device.bluetoothClass }.getOrNull()
         val majorClass = bluetoothClass?.majorDeviceClass
         val deviceClass = bluetoothClass?.deviceClass
@@ -72,17 +87,6 @@ object BtDeviceClassifier {
             deviceClass == BluetoothClass.Device.WEARABLE_HELMET ||
             deviceClass == BluetoothClass.Device.WEARABLE_GLASSES
         ) return true
-
-        val lower = deviceName.lowercase()
-        val wearableKeywords = listOf(
-            "watch", "smartwatch", "wear os", "fitbit", "garmin", "amazfit",
-            "whoop", "oura", "smart band", "smartband", "mi band", "miband",
-            "honor band", "huawei band", "galaxy fit", "band"
-        )
-        if (wearableKeywords.any { lower.contains(it) }) return true
-
-        val peripheralKeywords = listOf("mouse", "keyboard", "trackpad", "gamepad", "controller", "stylus", "s pen")
-        if (peripheralKeywords.any { lower.contains(it) }) return true
 
         return false
     }

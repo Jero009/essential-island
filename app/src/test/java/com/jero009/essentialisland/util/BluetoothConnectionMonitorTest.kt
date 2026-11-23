@@ -9,6 +9,7 @@ package com.jero009.essentialisland.util
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
 import com.jero009.essentialisland.data.SmartIslandNotificationRepository
@@ -111,5 +112,20 @@ class BluetoothConnectionMonitorTest {
 
         monitor.refreshNow()
         assertEquals("Galaxy Buds Pro", card()?.title)
+    }
+
+    /** Watches and trackers hold a GATT link around the clock — GATT devices must never reach the card. */
+    @Test
+    fun gattOnlyDevicesNeverOwnTheCard() {
+        val watch = mockk<BluetoothDevice>()
+        every { watch.name } returns "Galaxy Watch 7"
+        every { watch.address } returns "CC:CC:CC:CC:CC:03"
+        every { manager.getConnectedDevices(BluetoothProfile.GATT) } returns listOf(watch)
+        every { manager.getConnectedDevices(BluetoothProfile.A2DP) } returns emptyList()
+        every { manager.getConnectedDevices(BluetoothProfile.HEADSET) } returns emptyList()
+        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+
+        monitor.refreshNow()
+        assertNull(card())
     }
 }

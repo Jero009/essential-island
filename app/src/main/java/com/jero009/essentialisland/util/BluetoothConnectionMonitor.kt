@@ -76,7 +76,9 @@ class BluetoothConnectionMonitor(
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
 
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
-        val candidates = sequenceOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, BluetoothProfile.GATT)
+        // Audio profiles only. GATT is deliberately excluded: watches, bands and trackers hold a GATT link
+        // around the clock and would otherwise permanently own (or block) the connection card.
+        val candidates = sequenceOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET)
             .mapNotNull { profile ->
                 runCatching { manager.getConnectedDevices(profile) }.getOrNull()
             }

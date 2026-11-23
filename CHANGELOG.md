@@ -4,6 +4,16 @@ All notable changes to Smart Island should be documented in this file.
 
 The format is inspired by Keep a Changelog, and this project uses the GNU General Public License v3.0.
 
+## [1.11.2] - 2026-11-23
+
+### Fixed
+- **Watches no longer hijack (or block) the Bluetooth card.** Two gaps let a smartwatch own the connection card while real headphones never showed: the monitor polled the GATT profile too, and watches/bands hold a GATT link around the clock even when "disconnected"; and the ignore filter checked the Bluetooth class before the name, so a watch that reports an AUDIO_VIDEO class (it has speakers) slipped past the "watch" name rules — while LE-only devices report no class at all. The card now keys on audio profiles (A2DP + headset) only, and the name rules run first.
+- Disconnecting a watch hands the card to connected headphones immediately (audio-profile re-check in the same paths).
+
+### Tests
+- `BtDeviceClassifierTest`: watch named devices with an AUDIO_VIDEO class are ignored, class-less BLE devices judged by name, real audio devices never ignored, wearable/peripheral classes ignored, peripheral names ignored.
+- `BluetoothConnectionMonitorTest`: a GATT-only device never owns the card.
+
 ## [1.11.1] - 2026-11-23
 
 ### Fixed
