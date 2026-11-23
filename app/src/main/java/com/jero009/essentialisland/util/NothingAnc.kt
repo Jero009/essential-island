@@ -49,6 +49,60 @@ object NothingAnc {
         return lower.contains("nothing") || lower.contains("cmf ")
     }
 
+    /** True for the CMF family, whose presets go through the listening-mode commands instead of the EQ ones. */
+    fun isCmfDevice(name: String?): Boolean = (name ?: "").lowercase().contains("cmf")
+
+    // EQ presets ride the vendor protocol: the Nothing family reads 0xC01F / writes 0xF010, CMF models switch the
+    // same presets through the listening-mode commands 0xC050 / 0xF01D. Values from the community protocol tables
+    // (nada PROTOCOL.md, swift-nothing-ear, nothingctl — all verified against hardware).
+    internal const val READ_EQ = 0xC01F
+    internal const val WRITE_EQ = 0xF010
+    internal const val READ_LISTENING_MODE = 0xC050
+    internal const val WRITE_LISTENING_MODE = 0xF01D
+    internal const val READ_IN_EAR = 0xC00E
+    internal const val WRITE_IN_EAR = 0xF004
+
+    /** The device's EQ presets in cycling order: (raw value, label). CMF models use the listening-mode set. */
+    fun eqPresets(name: String?): List<Pair<Int, String>> =
+        if (isCmfDevice(name)) listOf(
+            0x00 to "Balanced", 0x01 to "Rock", 0x02 to "Electronic", 0x03 to "Pop",
+            0x04 to "Vocals", 0x05 to "Classical", 0x06 to "Custom"
+        ) else listOf(
+            0x00 to "Balanced", 0x01 to "Voice", 0x02 to "More Treble", 0x03 to "More Bass",
+            0x05 to "Custom", 0x06 to "New Voice", 0x07 to "New Instrument"
+        )
+
+    /** The current preset byte from an EQ / listening-mode reply: `[?, preset]`, or `[preset]` on some models. */
+    fun presetFromPayload(payload: ByteArray): Int? = when {
+        payload.size > 1 -> payload[1].toInt() and 0xFF
+        payload.size == 1 -> payload[0].toInt() and 0xFF
+        else -> null
+    }
+
+    /** Label for the preset byte within the device's family, or null when the device reports an unknown value. */
+    fun eqLabel(name: String?, preset: Int): String? =
+        eqPresets(name).firstOrNull { it.first == preset }?.second
+
+    /** The next preset after [preset] in the family's cycling order (an unknown current value starts at Balanced). */
+    fun nextEqPreset(name: String?, preset: Int): Int {
+        val presets = eqPresets(name)
+        val index = presets.indexOfFirst { it.first == preset }
+        return presets[(index + 1).mod(presets.size)].first
+    }
+
+    /**
+     * In-ear detection from the `0x400E` report `[count, (featureType, on)*]`: feature type 0x01 is the wear
+     * detection switch. Null when the report carries no such feature (the model has none).
+     */
+    fun inEarFromPayload(payload: ByteArray): Boolean? {
+        if (payload.isEmpty()) return null
+        val count = minOf(payload[0].toInt() and 0xFF, (payload.size - 1) / 2)
+        for (i in 0 until count) {
+            if (payload[1 + i * 2].toInt() == 0x01) return payload[2 + i * 2].toInt() != 0
+        }
+        return null
+    }
+
     fun crc16(data: ByteArray, from: Int = 0, to: Int = data.size): Int {
         var crc = 0xFFFF
         for (i in from until to) {
@@ -147,6 +201,19 @@ class NothingAncClient(private val device: BluetoothDevice) {
 
     fun writeAnc(mode: Int): Boolean =
         transact(0xF00F, byteArrayOf(0x01, mode.toByte(), 0x00)) != null
+
+    /** Reads the current EQ / listening-mode preset; [cmf] selects the listening-mode commands. */
+    fun readEqPreset(cmf: Boolean): ByteArray? =
+        transact(if (cmf) NothingAnc.READ_LISTENING_MODE else NothingAnc.READ_EQ, ByteArray(0))
+
+    /** Applies the preset byte [value]; [cmf] selects the listening-mode commands. */
+    fun writeEqPreset(value: Int, cmf: Boolean): Boolean =
+        transact(if (cmf) NothingAnc.WRITE_LISTENING_MODE else NothingAnc.WRITE_EQ, byteArrayOf(value.toByte(), 0x00)) != null
+
+    fun readInEar(): ByteArray? = transact(NothingAnc.READ_IN_EAR, ByteArray(0))
+
+    fun writeInEar(on: Boolean): Boolean =
+        transact(NothingAnc.WRITE_IN_EAR, byteArrayOf(0x01, 0x01, if (on) 0x01 else 0x00)) != null
 
     fun close() {
         synchronized(lock) {

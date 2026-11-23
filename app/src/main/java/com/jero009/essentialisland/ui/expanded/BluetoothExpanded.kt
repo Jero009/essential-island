@@ -111,19 +111,34 @@ fun BluetoothExpanded(
     val scope = rememberCoroutineScope()
     var ancMode by remember { mutableStateOf<Int?>(null) }
     var ancBusy by remember { mutableStateOf(false) }
+    var eqPreset by remember { mutableStateOf<Int?>(null) }
+    var eqBusy by remember { mutableStateOf(false) }
+    var inEarOn by remember { mutableStateOf<Boolean?>(null) }
+    var inEarBusy by remember { mutableStateOf(false) }
 
+    // One RFCOMM session answers every initial read: opening two sockets to the same earbuds at once is flaky.
     LaunchedEffect(deviceName, ancSupported) {
         if (!ancSupported) return@LaunchedEffect
         ancBusy = true
-        ancMode = withContext(Dispatchers.IO) {
+        val read = withContext(Dispatchers.IO) {
             val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
             val client = NothingAncClient(device)
             try {
                 if (!client.connect()) return@withContext null
-                client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) }
+                val cmf = NothingAnc.isCmfDevice(deviceName)
+                Triple(
+                    client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) },
+                    client.readEqPreset(cmf)?.let { NothingAnc.presetFromPayload(it) },
+                    client.readInEar()?.let { NothingAnc.inEarFromPayload(it) }
+                )
             } finally {
                 client.close()
             }
+        }
+        if (read != null) {
+            ancMode = read.first
+            eqPreset = read.second
+            inEarOn = read.third
         }
         ancBusy = false
     }
@@ -157,6 +172,55 @@ fun BluetoothExpanded(
         ancActive -> "ANC On"
         ancMode == NothingAnc.MODE_TRANSPARENCY -> "Transparency"
         else -> "Off"
+    }
+
+    fun cycleEq() {
+        if (eqBusy) return
+        val current = eqPreset ?: return
+        val target = NothingAnc.nextEqPreset(deviceName, current)
+        val cmf = NothingAnc.isCmfDevice(deviceName)
+        scope.launch {
+            eqBusy = true
+            val updated = withContext(Dispatchers.IO) {
+                val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
+                val client = NothingAncClient(device)
+                try {
+                    if (!client.connect() || !client.writeEqPreset(target, cmf)) return@withContext null
+                    // Show what the earbuds actually switched to: firmware acks writes it then ignores
+                    // (spatial audio excludes non-flat presets).
+                    client.readEqPreset(cmf)?.let { NothingAnc.presetFromPayload(it) } ?: target
+                } finally {
+                    client.close()
+                }
+            }
+            if (updated != null) eqPreset = updated
+            eqBusy = false
+        }
+    }
+
+    fun toggleInEar() {
+        if (inEarBusy) return
+        val target = !(inEarOn ?: return)
+        scope.launch {
+            inEarBusy = true
+            val updated = withContext(Dispatchers.IO) {
+                val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
+                val client = NothingAncClient(device)
+                try {
+                    if (!client.connect() || !client.writeInEar(target)) return@withContext null
+                    client.readInEar()?.let { NothingAnc.inEarFromPayload(it) } ?: target
+                } finally {
+                    client.close()
+                }
+            }
+            if (updated != null) inEarOn = updated
+            inEarBusy = false
+        }
+    }
+
+    val eqLabel = when {
+        eqBusy -> "…"
+        else -> eqPreset?.let { NothingAnc.eqLabel(deviceName, it) } ?: "EQ"
     }
 
     Column(
@@ -397,6 +461,75 @@ fun BluetoothExpanded(
                     Text(
                         text = ancLabel,
                         color = if (ancActive) Color(0xFF111111) else LocalIslandPalette.current.text.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // EQ row: the chip cycles through the family's presets; shown once the earbuds answered the preset read.
+        if (eqPreset != null) {
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Equalizer",
+                    color = LocalIslandPalette.current.text.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(LocalIslandPalette.current.tint(0.12f))
+                        .clickable { cycleEq() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = eqLabel,
+                        color = LocalIslandPalette.current.text.copy(alpha = 0.8f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // In-ear detection row: on/off chip inverted while on. Hidden when the model reports no such feature.
+        if (inEarOn != null) {
+            val inEarActive = inEarOn == true
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 18.dp, end = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "In-ear detection",
+                    color = LocalIslandPalette.current.text.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (inEarActive) LocalIslandPalette.current.text else LocalIslandPalette.current.tint(0.12f))
+                        .clickable { toggleInEar() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (inEarBusy) "…" else if (inEarActive) "On" else "Off",
+                        color = if (inEarActive) Color(0xFF111111) else LocalIslandPalette.current.text.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )

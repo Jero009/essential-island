@@ -4,6 +4,22 @@ All notable changes to Smart Island should be documented in this file.
 
 The format is inspired by Keep a Changelog, and this project uses the GNU General Public License v3.0.
 
+## [1.11.0] - 2026-11-23
+
+### Highlights (v1.11.0)
+- **EQ presets & in-ear detection on the earbuds card**: the expanded Bluetooth card gains an Equalizer chip that cycles the device's presets and an In-ear detection toggle, spoken straight over the NT LINK vendor protocol — no companion app.
+- **Two dead startup collectors fixed**: the empty-island guard and the auto-collapse pause died on every process start with a NullPointerException, so an empty expanded island did not close itself and the collapse countdown did not hold while the quick-launch grid, a reader or map navigation was open.
+- **Nothing OS Bluetooth series**: the Nothing theme pass, the minimal battery card, earbuds vs headphones cards, connected-device polling with Shizuku auto-grant, the ANC toggle and the earbuds glyph — all mainline here after v1.10.0 shipped them from a local tree.
+
+### Added
+- **EQ preset cycling (`NothingAnc.eqPresets`)**: the Nothing family uses the EQ commands (`0xC01F` / `0xF010`) with Balanced, Voice, More Treble, More Bass, Custom, New Voice and New Instrument; CMF models use the listening-mode commands (`0xC050` / `0xF01D`) with Balanced, Rock, Electronic, Pop, Vocals, Classical and Custom. The chip always shows what the earbuds report after the write — firmware acknowledges writes it then ignores (spatial audio excludes non-flat presets) — and the row hides entirely for models that do not answer the read.
+- **In-ear detection row (`0xC00E` / `0xF004`)**: on/off chip, inverted while on, hidden when the report carries no wear-detection feature.
+- **Glyph-aware Mirror Only hint**: the Mirror Only setting now explains that a Glyph only lights while its notification exists in the shade, pointing at the per-app Keep in system shade toggles (Nothing Essential notifications die when the island cancels their shade copy).
+- **Protocol test suite**: frame build/parse and CRC16-Modbus vectors, ANC/EQ/in-ear payload parsing, and per-family preset cycling, plus a constructor-order guard for the collector fix.
+
+### Fixed
+- **IslandViewModel init order**: `appsLauncherOpen` was declared below the `init` block whose collectors combine it; since `viewModelScope` launches on `Main.immediate`, both collectors ran mid-constructor, combined a null flow and died at every startup. The flow is now declared before `init`.
+
 ## [7.6.0] - 2026-10-19
 
 ### Highlights (v7.6.0)

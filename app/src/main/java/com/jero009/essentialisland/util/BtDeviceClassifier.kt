@@ -23,6 +23,7 @@ object BtDeviceClassifier {
     )
 
     /** Class said "headphones", but over-ear cans and TWS earbuds share that class — the name decides. */
+    @SuppressLint("MissingPermission")
     fun category(device: BluetoothDevice?, deviceName: String): String {
         val audioHeadphones = runCatching { device?.bluetoothClass?.deviceClass }
             .getOrNull() == BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES

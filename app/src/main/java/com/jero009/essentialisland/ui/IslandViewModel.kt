@@ -732,6 +732,14 @@ class IslandViewModel(
         popupKey.value = null
     }
 
+    /**
+     * True while the expanded island shows the quick-launch apps grid instead of its cards (the Open Apps shortcut).
+     * Declared before init on purpose: viewModelScope launches collectors on Main.immediate, so their bodies run
+     * while the constructor is still executing — a property declared further down is still null there, and the
+     * collectors that combine it die with an NPE at every startup.
+     */
+    val appsLauncherOpen = MutableStateFlow(false)
+
     init {
         viewModelScope.launch {
             runSuspendCatchingLogged(TAG, "Notifications collector failed") {
@@ -1182,9 +1190,6 @@ class IslandViewModel(
     }
 
     private enum class ResumeState { NONE, GONE, WAIT, READY }
-
-    /** True while the expanded island shows the quick-launch apps grid instead of its cards (the Open Apps shortcut). */
-    val appsLauncherOpen = MutableStateFlow(false)
 
     /** Open Apps shortcut (long press on the collapsed cutout, portrait): expands the island onto the quick-launch grid. */
     fun openAppsLauncher() {

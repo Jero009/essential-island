@@ -1,6 +1,30 @@
 # Smart Island Product Roadmap
 
-Last updated: October 18, 2026
+Last updated: November 23, 2026
+
+## Essential Island fork roadmap
+
+This tree is Essential Island, a GPL-3.0 fork of SmartIsland focused on Nothing OS phones and Nothing/CMF audio. Fork releases are versioned 1.x and published on GitHub Releases; the upstream Smart Island roadmap below stays for reference.
+
+**Direction: deeper Nothing integration, same reliability bar.** Nothing/CMF hardware features are implemented against the community-documented NT LINK protocol (nada, swift-nothing-ear, nothingctl), spoken directly over RFCOMM with graceful hide-when-unsupported behavior, and every protocol addition lands with byte-level tests.
+
+Shipped so far:
+
+- Nothing OS theme pass: Geist/Doto typography, measured OS 5 settings values, flat black cards, monochrome ink icons, Doto strictly opt-in
+- Minimal Nothing battery card; earbuds vs headphones cards with distinct glyphs
+- Connected-device polling with Shizuku auto-grant of BLUETOOTH_CONNECT
+- ANC on/off on the expanded card (NT LINK, live state read-back)
+- EQ preset cycling and in-ear detection on the earbuds card (v1.11.0)
+- Glyph-aware handling: per-app Keep in system shade so Nothing Essential notifications keep their Glyph, with a Mirror Only hint
+
+Next candidates (in no committed order):
+
+- Custom 3-band EQ editing (bass/mid/treble, −6…+6) and bass boost on supported models
+- Gesture / key configuration reading on the earbuds card
+- Find-my-earbuds ping from the card
+- Recovery hardening after system process kills (bound-but-windowless self-check) — the island dies for 1–2 s whenever Android revokes a runtime permission and must rebind cleanly on every OEM
+
+---
 
 ## Product direction
 
