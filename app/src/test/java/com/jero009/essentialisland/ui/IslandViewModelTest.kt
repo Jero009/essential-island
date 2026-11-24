@@ -1810,4 +1810,48 @@ class IslandViewModelTest {
         assertEquals(0, viewModel.selectedIndex.value)
         org.junit.Assert.assertFalse(viewModel.expanded.value)
     }
+
+    /**
+     * THE v1.12.1 REGRESSION GUARD: the Bluetooth connection card is a state card — while the device is
+     * connected the card stays on the island, and the collapsed-pill idle timeout must never put it away
+     * (a put-away here reads as "tapping the pill does nothing": the card vanishes before it can be
+     * tapped, then the idle timeout hides it entirely — the FroggerPro report). Transient connectivity
+     * cards (Wi-Fi, VPN, USB, wired headphones) still time out, and the existing exemptions hold.
+     */
+    @Test
+    fun liveIdleTimeoutNeverSweepsTheConnectedBluetoothCard() {
+        fun card(key: String, mode: IslandMode) = IslandNotification(
+            key = key, packageName = "com.android.bluetooth", appName = "Bluetooth", title = key, text = key,
+            mode = mode, timeMillis = 0L
+        )
+
+        val connected = card("system_bluetooth", IslandMode.Bluetooth)
+        assertFalse(IslandViewModel.liveMayTimeOut(connected, isLandscape = false))
+        assertFalse(IslandViewModel.liveMayTimeOut(connected, isLandscape = true))
+
+        // Transient connectivity cards on the same mode keep their old behaviour.
+        assertTrue(IslandViewModel.liveMayTimeOut(card("system_wifi", IslandMode.Bluetooth), isLandscape = false))
+        assertTrue(IslandViewModel.liveMayTimeOut(card("system_wifi_disconnected", IslandMode.Bluetooth), isLandscape = false))
+        assertTrue(IslandViewModel.liveMayTimeOut(card("system_usb", IslandMode.Bluetooth), isLandscape = false))
+    }
+
+    @Test
+    fun liveIdleTimeoutKeepsItsExistingExemptions() {
+        fun card(key: String, mode: IslandMode, mediaIsPlaying: Boolean = false) = IslandNotification(
+            key = key, packageName = "com.example", appName = "Example", title = key, text = key,
+            mediaIsPlaying = mediaIsPlaying,
+            mode = mode, timeMillis = 0L
+        )
+
+        // Paused music is idle-able (canIdleOut) — the live timer skips it; playing music times out.
+        assertFalse(IslandViewModel.liveMayTimeOut(card("music", IslandMode.Music, mediaIsPlaying = false), isLandscape = false))
+        assertTrue(IslandViewModel.liveMayTimeOut(card("music", IslandMode.Music, mediaIsPlaying = true), isLandscape = false))
+        // Navigation stays until the trip ends.
+        assertFalse(IslandViewModel.liveMayTimeOut(card("nav", IslandMode.Navigation), isLandscape = false))
+        // Portrait: a live activity stays; landscape: it times out.
+        assertFalse(IslandViewModel.liveMayTimeOut(card("activity", IslandMode.LiveActivity), isLandscape = false))
+        assertTrue(IslandViewModel.liveMayTimeOut(card("activity", IslandMode.LiveActivity), isLandscape = true))
+        // Calls are never timed out by this timer.
+        assertFalse(IslandViewModel.liveMayTimeOut(card("call", IslandMode.IncomingCall), isLandscape = false))
+    }
 }

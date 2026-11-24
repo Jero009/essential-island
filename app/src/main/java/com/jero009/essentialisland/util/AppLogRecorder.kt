@@ -37,6 +37,7 @@ object AppLogRecorder {
     private const val ENTRY_SEPARATOR = '\u001E'
     private const val STATE_PREFS = "smartisland_log_state"
     private const val KEY_RECORDING = "recording"
+    private const val KEY_LAST_VERSION = "last_logged_version"
 
     private val inMemoryLogs = ConcurrentLinkedQueue<String>()
     private val logCount = AtomicInteger(0)
@@ -110,6 +111,24 @@ object AppLogRecorder {
         if (wasRecording) {
             isRecording = true
             record("I", TAG, "Process started (pid ${Process.myPid()}, v${BuildConfig.VERSION_NAME}); recording resumed from the last session. Earlier lines above belong to the previous process.")
+        }
+        logVersionChange(context)
+    }
+
+    /**
+     * One always-on line when this process runs a different build than the last one that logged: after an
+     * APK update the old overlay service can stay alive briefly (its startup line then still names the old
+     * version), so the log must say outright which build took over and when.
+     */
+    private fun logVersionChange(context: Context) {
+        val prefs = context.applicationContext.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+        val previous = runCatching { prefs.getString(KEY_LAST_VERSION, null) }.getOrNull()
+        if (previous == BuildConfig.VERSION_NAME) return
+        val transition = if (previous.isNullOrBlank()) "first process on v${BuildConfig.VERSION_NAME}"
+        else "app updated: v$previous -> v${BuildConfig.VERSION_NAME}"
+        recordCritical("I", TAG, "$transition (pid ${Process.myPid()}) — a stale pre-update process may still log its own older version line above")
+        runCatching {
+            prefs.edit().putString(KEY_LAST_VERSION, BuildConfig.VERSION_NAME).apply()
         }
     }
 

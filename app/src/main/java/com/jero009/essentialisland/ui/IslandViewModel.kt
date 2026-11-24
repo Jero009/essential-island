@@ -1465,11 +1465,7 @@ class IslandViewModel(
         if (IslandPriority.canIdleOut(this)) idleToken() else IdleToken(key, 0L, liveAwayHash(this))
 
     private fun liveMayTimeOut(n: IslandNotification) =
-        !IslandPriority.canIdleOut(n) && n.mode != IslandMode.IncomingCall &&
-            // Navigation stays until the trip ends or the user puts it away; it never times out by itself.
-            n.mode != IslandMode.Navigation &&
-            // Portrait: a live activity stays until it ends or the user puts it away (tap on the idle cutout).
-            !(n.mode == IslandMode.LiveActivity && !orientation.value.isLandscape)
+        IslandViewModel.liveMayTimeOut(n, orientation.value.isLandscape)
 
     override fun onCleared() {
         super.onCleared()
@@ -1514,6 +1510,24 @@ class IslandViewModel(
         /** The part of a live card's put-away token that is not its key. */
         internal fun liveAwayHash(n: IslandNotification): Int =
             if (n.mode == IslandMode.Music) (n.title to n.text).hashCode() else 0
+
+        /**
+         * Whether the collapsed-pill idle timer may put [n] away.
+         *
+         * The Bluetooth connection card ("system_bluetooth") is a STATE card, not a live event: while the
+         * device is connected the monitor keeps the card in the repository and refreshed, so the idle
+         * timeout must never hide it — a put-away here reads as "tapping the pill does nothing" because
+         * the card vanishes before it can be tapped (the v1.12.1 FroggerPro report). It leaves only when
+         * the device actually disconnects, which removes the card outright. Transient connectivity cards
+         * (Wi-Fi, VPN, USB, wired headphones — other keys, same mode) still time out like before.
+         */
+        internal fun liveMayTimeOut(n: IslandNotification, isLandscape: Boolean): Boolean =
+            n.key != "system_bluetooth" &&
+                !IslandPriority.canIdleOut(n) && n.mode != IslandMode.IncomingCall &&
+                // Navigation stays until the trip ends or the user puts it away; it never times out by itself.
+                n.mode != IslandMode.Navigation &&
+                // Portrait: a live activity stays until it ends or the user puts it away (tap on the idle cutout).
+                !(n.mode == IslandMode.LiveActivity && !isLandscape)
 
         private const val AUTO_COLLAPSE_DELAY_MS = 5000L
         private const val OUTSIDE_CLOSE_DELAY_MS = 800L
