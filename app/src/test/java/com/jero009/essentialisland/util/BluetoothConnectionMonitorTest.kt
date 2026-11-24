@@ -40,6 +40,7 @@ class BluetoothConnectionMonitorTest {
 
     @Before
     fun setUp() {
+        AppLogRecorder.resetForTest()
         every { context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) } returns
             PackageManager.PERMISSION_GRANTED
         every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
@@ -141,5 +142,60 @@ class BluetoothConnectionMonitorTest {
         assertFalse(profiles.contains(BluetoothProfile.GATT))
         assertEquals(listOf(BluetoothProfile.A2DP, BluetoothProfile.HEADSET, BluetoothProfile.LE_AUDIO), profiles)
         assertFalse(BluetoothConnectionMonitor.audioProfiles(26).contains(BluetoothProfile.LE_AUDIO))
+    }
+
+    /** DataStore delivers settings async: the first ticks must wait instead of deciding against unloaded defaults. */
+    @Test
+    fun ticksStaySilentWhileSettingsAreNotLoadedYet() {
+        connected = listOf(audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro"))
+        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) {
+            SmartIslandSettings.Default
+        }
+
+        monitor.refreshNow()
+        assertNull(card())
+        assertEquals(0, AppLogRecorder.getLogCount())
+    }
+
+    /** Devices connected but every one filtered out: the log must say what was seen, not stay silent. */
+    @Test
+    fun connectedButEverythingFilteredLogsWhatItSaw() {
+        connected = listOf(wearableDevice("CC:CC:CC:CC:CC:03", "Galaxy Watch 7"))
+        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+
+        monitor.refreshNow()
+        assertNull(card())
+        val logged = AppLogRecorder.lastEntryForTest()
+        assertTrue(logged!!.contains("none survived the filter"))
+        assertTrue(logged.contains("Galaxy Watch 7"))
+
+        // The same state does not repeat on every poll.
+        monitor.refreshNow()
+        assertEquals(1, AppLogRecorder.getLogCount())
+    }
+
+    /** Island or event switch off: no card, and one line per process saying which gate is closed. */
+    @Test
+    fun disabledBluetoothEventLogsOnceAndShowsNoCard() {
+        connected = listOf(audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro"))
+        val offSettings = settings.copy(disabledEvents = setOf(com.jero009.essentialisland.model.IslandEvent.BLUETOOTH.id))
+        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { offSettings }
+
+        monitor.refreshNow()
+        monitor.refreshNow()
+        assertNull(card())
+        assertEquals(1, AppLogRecorder.getLogCount())
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("Bluetooth card off"))
+    }
+
+    private fun wearableDevice(address: String, name: String): BluetoothDevice {
+        val device = mockk<BluetoothDevice>()
+        val btClass = mockk<BluetoothClass>()
+        every { btClass.majorDeviceClass } returns BluetoothClass.Device.Major.WEARABLE
+        every { btClass.deviceClass } returns BluetoothClass.Device.WEARABLE_WRIST_WATCH
+        every { device.bluetoothClass } returns btClass
+        every { device.name } returns name
+        every { device.address } returns address
+        return device
     }
 }

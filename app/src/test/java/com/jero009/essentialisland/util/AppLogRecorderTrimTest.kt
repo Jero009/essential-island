@@ -50,4 +50,13 @@ class AppLogRecorderTrimTest {
         repeat(10) { AppLogRecorder.w("Test", "entry $it") }
         assertEquals(10, AppLogRecorder.getLogCount())
     }
+
+    /** The always-on pipeline verdicts must land in the buffer even with the recording toggle off. */
+    @Test
+    fun criticalEntriesLandWhileRecordingIsOff() {
+        AppLogRecorder.i("Test", "gated behind the toggle") // dropped: recording off
+        AppLogRecorder.recordCritical("W", "Test", "always kept")
+        assertEquals(1, AppLogRecorder.getLogCount())
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.endsWith("always kept"))
+    }
 }

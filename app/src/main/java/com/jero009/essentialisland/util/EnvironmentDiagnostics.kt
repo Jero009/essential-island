@@ -7,6 +7,7 @@
 
 package com.jero009.essentialisland.util
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
@@ -25,6 +26,7 @@ import com.jero009.essentialisland.service.SmartIslandOverlayService
 object EnvironmentDiagnostics {
     private val WHATSAPP_PACKAGES = listOf("com.whatsapp", "com.whatsapp.w4b")
 
+    @SuppressLint("InlinedApi") // BLUETOOTH_CONNECT is a compile-time string; old APIs just answer "denied".
     fun snapshot(context: Context): String {
         fun <T> safe(block: () -> T): String = runCatching { block().toString() }.getOrDefault("?")
 
@@ -47,6 +49,13 @@ object EnvironmentDiagnostics {
                 append(" standbyBucket=").append(safe { standbyBucketName(usageStats?.appStandbyBucket) })
             }
             append(" notificationsEnabled=").append(safe { notificationManager?.areNotificationsEnabled() })
+            append(" btConnect=").append(
+                safe {
+                    context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+            )
+            append(" uptimeMs=").append(safe { android.os.SystemClock.elapsedRealtime() })
             append(" dndFilter=").append(safe { notificationManager?.currentInterruptionFilter })
             append(" audioMode=").append(safe { audioModeName(audio?.mode) })
             append(" ringerMode=").append(safe { audio?.ringerMode })

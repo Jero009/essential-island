@@ -46,6 +46,18 @@ class BluetoothConnectionMonitor(
     @Volatile
     private var permissionLogged = false
 
+    /** Warned once per process when the island or the Bluetooth event switch is off. */
+    @Volatile
+    private var disabledLogged = false
+
+    /** Warned once per process when the BluetoothManager service is unavailable. */
+    @Volatile
+    private var managerLogged = false
+
+    /** The last "connected but everything filtered" signature; the line only repeats when this changes. */
+    @Volatile
+    private var lastFilteredSignature: String? = null
+
     fun start() {
         if (job != null) return
         job = scope.launch {
@@ -75,28 +87,49 @@ class BluetoothConnectionMonitor(
     private fun tick() {
         val settings = settingsProvider()
         val hasCard = repository.notifications.value.any { it.key == KEY }
+        if (settings == SmartIslandSettings.Default) {
+            // DataStore has not delivered the real settings yet (async load): deciding anything now
+            // would log false verdicts against the unloaded default (island "off"). Wait for the poll.
+            return
+        }
         if (!settings.enabled || !settings.isEventEnabled(IslandEvent.BLUETOOTH.id)) {
+            if (!disabledLogged) {
+                disabledLogged = true
+                AppLogRecorder.recordCritical(
+                    "I",
+                    TAG,
+                    "Bluetooth card off: island enabled=${settings.enabled}, " +
+                        "bluetooth event enabled=${settings.isEventEnabled(IslandEvent.BLUETOOTH.id)}"
+                )
+            }
             if (hasCard) repository.removeNotification(KEY)
             return
         }
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             if (!permissionLogged) {
                 permissionLogged = true
-                AppLogRecorder.w(TAG, "Bluetooth card cannot work: Nearby devices (BLUETOOTH_CONNECT) is not granted")
+                AppLogRecorder.recordCritical("W", TAG, "Bluetooth card cannot work: Nearby devices (BLUETOOTH_CONNECT) is not granted")
             }
             return
         }
 
-        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
+        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: run {
+            if (!managerLogged) {
+                managerLogged = true
+                AppLogRecorder.recordCritical("W", TAG, "BluetoothManager service unavailable — the card cannot poll")
+            }
+            return
+        }
         // Audio profiles only. GATT is deliberately excluded: watches, bands and trackers hold a GATT link
         // around the clock and would otherwise permanently own (or block) the connection card.
         // LE Audio (API 31+) is included: modern TWS headphones connect through it and never appear on A2DP.
         val profiles = audioProfiles(Build.VERSION.SDK_INT)
-        val perProfile = profiles.mapNotNull { profile ->
-            runCatching { profile to (manager.getConnectedDevices(profile)?.size ?: -1) }.getOrNull()
+        val perProfileDevices = profiles.map { profile ->
+            profile to runCatching { manager.getConnectedDevices(profile) }.getOrNull()
         }
-        val candidates = profiles
-            .mapNotNull { profile -> runCatching { manager.getConnectedDevices(profile) }.getOrNull() }
+        val perProfile = perProfileDevices.map { (profile, devices) -> profile to (devices?.size ?: -1) }
+        val candidates = perProfileDevices
+            .mapNotNull { (_, devices) -> devices }
             .flatten()
             .distinctBy { it.address }
             .filter { candidate ->
@@ -105,14 +138,35 @@ class BluetoothConnectionMonitor(
             }
             .toList()
         if (candidates.isEmpty()) {
-            // Nothing connected (that we count): clear the card if the broadcast left one behind.
             preferredAddress = null
+            if (perProfile.any { (_, count) -> count > 0 }) {
+                // Devices ARE connected but none survived the ignore filter (or the query threw):
+                // the exact state that used to eat the card in silence. Log it when it changes.
+                val seen = perProfileDevices
+                    .mapNotNull { (_, devices) -> devices }
+                    .flatten()
+                    .distinctBy { it.address }
+                    .map { device -> runCatching { device.name }.getOrNull().orEmpty().ifBlank { "?" } }
+                val signature = "$perProfile$seen"
+                if (signature != lastFilteredSignature) {
+                    lastFilteredSignature = signature
+                    AppLogRecorder.recordCritical(
+                        "W",
+                        TAG,
+                        "Bluetooth devices are connected but none survived the filter: per profile: $perProfile, seen: $seen"
+                    )
+                }
+            } else {
+                lastFilteredSignature = null
+            }
             if (hasCard) {
-                AppLogRecorder.i(TAG, "Bluetooth card cleared: no countable device (per profile: ${perProfile})")
+                // Nothing connected (that we count): clear the card if the broadcast left one behind.
+                AppLogRecorder.recordCritical("I", TAG, "Bluetooth card cleared: no countable device (per profile: $perProfile)")
                 repository.removeNotification(KEY)
             }
             return
         }
+        lastFilteredSignature = null
         // The most recently connected device wins; an address that has dropped off (or an unknown one,
         // e.g. right after a process restart) falls back to whatever is still connected.
         val preferred = preferredAddress?.let { address -> candidates.firstOrNull { it.address == address } }
@@ -126,7 +180,8 @@ class BluetoothConnectionMonitor(
 
         val existing = repository.notifications.value.find { it.key == KEY }
         if (existing != null && existing.title == name && existing.text == text && existing.category == category) return
-        AppLogRecorder.i(
+        AppLogRecorder.recordCritical(
+            "I",
             TAG,
             "Bluetooth card: chose '$name' ($category${if (battery in 0..100) ", $battery%" else ""}) " +
                 "of candidates=${candidates.map { candidate -> runCatching { candidate.name }.getOrNull().orEmpty().ifBlank { "?" } }} " +

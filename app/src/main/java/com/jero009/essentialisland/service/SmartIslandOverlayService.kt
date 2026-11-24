@@ -866,7 +866,11 @@ class SmartIslandOverlayService : AccessibilityService() {
                     addedDevices
                         .filter {
                             it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-                                it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                                it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
+                                    it.type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                                        it.type == android.media.AudioDeviceInfo.TYPE_BLE_SPEAKER
+                                    ))
                         }
                         .firstNotNullOfOrNull { device ->
                             runCatching {
@@ -895,6 +899,25 @@ class SmartIslandOverlayService : AccessibilityService() {
         }
         (getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager)
             ?.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(android.os.Looper.getMainLooper()))
+
+        // One always-on verdict per process: which version actually runs, whether Nearby devices is granted
+        // and whether the Shizuku auto-grant is available. These are the two facts an exported report needs
+        // even when the "Record Logs" toggle was never switched on.
+        @SuppressLint("InlinedApi") // BLUETOOTH_CONNECT is a compile-time string; old APIs just answer "denied".
+        val btConnectGranted = checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        val shizukuState = when {
+            com.jero009.essentialisland.util.ShizukuManager.isBinderAvailable() ->
+                if (com.jero009.essentialisland.util.ShizukuManager.hasPermission()) "binder+granted"
+                else "binder+no-permission"
+            else -> "unavailable"
+        }
+        com.jero009.essentialisland.util.AppLogRecorder.recordCritical(
+            "I",
+            TAG,
+            "Bluetooth card pipeline live v${com.jero009.essentialisland.BuildConfig.VERSION_NAME} " +
+                "(${com.jero009.essentialisland.BuildConfig.VERSION_CODE}) — BLUETOOTH_CONNECT=$btConnectGranted, shizuku=$shizukuState"
+        )
 
         // Last-resort transfer detection for apps whose own notification is blocked or missing.
         transferSpeedMonitor = com.jero009.essentialisland.util.TransferSpeedMonitor(

@@ -115,7 +115,20 @@ object AppLogRecorder {
 
     fun record(level: String, tag: String, message: String, tr: Throwable? = null) {
         if (!isRecording) return
+        write(level, tag, message, tr)
+    }
 
+    /**
+     * Writes even while the recording toggle is off. The always-on diagnostics (the Bluetooth card
+     * decisions and other low-frequency pipeline verdicts) must land in the exported report without
+     * depending on the user remembering the "Record Logs" switch — v1.11.3's decision log was silent
+     * whenever that switch was off. Keep callers low-frequency: these entries bypass the idle gate.
+     */
+    fun recordCritical(level: String, tag: String, message: String, tr: Throwable? = null) {
+        write(level, tag, message, tr)
+    }
+
+    private fun write(level: String, tag: String, message: String, tr: Throwable?) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
         val threadName = Thread.currentThread().name
         val entry = buildString {
