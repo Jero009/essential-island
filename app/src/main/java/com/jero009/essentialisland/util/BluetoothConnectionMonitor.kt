@@ -12,6 +12,8 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.os.Build
 import com.jero009.essentialisland.data.INotificationRepository
 import com.jero009.essentialisland.data.SmartIslandSettings
@@ -25,16 +27,21 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Polls the actually-connected Bluetooth devices instead of relying on ACTION_ACL broadcasts, which
- * several OEM skins (Nothing OS included) do not reliably deliver to third-party apps on Android 12+.
- * Keeps the "system_bluetooth" card in sync with reality every [POLL_MS]; harmless when the broadcast
- * receiver already handled it (same key, same content = no churn).
+ * Owns the "system_bluetooth" card. Candidates come from AudioManager's registered audio devices — the same
+ * source that drives [android.media.AudioDeviceCallback] — because that is the one path proven to work on
+ * Nothing OS: ACL broadcasts are unreliable there, and BluetoothManager's per-profile connected-device
+ * queries came back empty on a FroggerPro / Android 17 even with the earbuds connected and BLUETOOTH_CONNECT
+ * granted (v1.9.1–v1.11.4 never produced a candidate there; the failure was silent by design). A watch that
+ * only holds a GATT link never registers an audio route, so the watch exclusion holds by construction; the
+ * name/class rules in [BtDeviceClassifier.isIgnoredDevice] still catch wearables that DO register a route.
+ * Every tick decision is logged (via [AppLogRecorder.recordCritical], always on) and deduped by state.
  */
 class BluetoothConnectionMonitor(
     private val context: Context,
     private val scope: CoroutineScope,
     private val repository: INotificationRepository,
-    private val settingsProvider: () -> SmartIslandSettings
+    private val settingsProvider: () -> SmartIslandSettings,
+    private val sdkInt: Int = Build.VERSION.SDK_INT
 ) {
     private var job: Job? = null
 
@@ -42,27 +49,19 @@ class BluetoothConnectionMonitor(
     @Volatile
     private var preferredAddress: String? = null
 
-    /** Warned once per process until the permission turns up, so the log does not fill with repeats. */
-    @Volatile
-    private var permissionLogged = false
-
-    /** Warned once per process when the island or the Bluetooth event switch is off. */
-    @Volatile
-    private var disabledLogged = false
-
-    /** Warned once per process when the BluetoothManager service is unavailable. */
-    @Volatile
-    private var managerLogged = false
-
-    /** The last "connected but everything filtered" signature; the line only repeats when this changes. */
-    @Volatile
-    private var lastFilteredSignature: String? = null
+    @Volatile private var settingsUnloadedLogged = false
+    @Volatile private var disabledLogged = false
+    @Volatile private var permissionLogged = false
+    @Volatile private var audioMissingLogged = false
+    @Volatile private var addressUnsupportedLogged = false
+    @Volatile private var lastIdleSignature: String? = null
+    @Volatile private var lastFilteredSignature: String? = null
 
     fun start() {
         if (job != null) return
         job = scope.launch {
             while (isActive) {
-                runCatchingLogged(TAG, "bluetooth poll failed") { tick() }
+                runCatchingLogged(TAG, "bluetooth poll failed") { tick("poll") }
                 delay(POLL_MS)
             }
         }
@@ -76,30 +75,34 @@ class BluetoothConnectionMonitor(
     /** Follows [address] from now on and reconciles the card immediately instead of waiting for the next poll. */
     fun prefer(address: String?) {
         preferredAddress = address
-        runCatchingLogged(TAG, "bluetooth prefer-refresh failed") { tick() }
+        runCatchingLogged(TAG, "bluetooth prefer-refresh failed") { tick("prefer") }
     }
 
     /** Reconciles the card immediately (a device may have disconnected); the poll stays as the safety net. */
     fun refreshNow() {
-        runCatchingLogged(TAG, "bluetooth refresh failed") { tick() }
+        runCatchingLogged(TAG, "bluetooth refresh failed") { tick("refresh") }
     }
 
-    private fun tick() {
+    private fun tick(reason: String) {
         val settings = settingsProvider()
-        val hasCard = repository.notifications.value.any { it.key == KEY }
-        if (settings == SmartIslandSettings.Default) {
+        if (settings == null || settings == SmartIslandSettings.Default) {
             // DataStore has not delivered the real settings yet (async load): deciding anything now
             // would log false verdicts against the unloaded default (island "off"). Wait for the poll.
+            if (!settingsUnloadedLogged) {
+                settingsUnloadedLogged = true
+                AppLogRecorder.recordCritical("I", TAG, "tick($reason): settings not loaded yet — the next tick decides")
+            }
             return
         }
+        val hasCard = repository.notifications.value.any { it.key == KEY }
         if (!settings.enabled || !settings.isEventEnabled(IslandEvent.BLUETOOTH.id)) {
             if (!disabledLogged) {
                 disabledLogged = true
                 AppLogRecorder.recordCritical(
                     "I",
                     TAG,
-                    "Bluetooth card off: island enabled=${settings.enabled}, " +
-                        "bluetooth event enabled=${settings.isEventEnabled(IslandEvent.BLUETOOTH.id)}"
+                    "tick($reason): Bluetooth card off (island=${settings.enabled}, " +
+                        "btEvent=${settings.isEventEnabled(IslandEvent.BLUETOOTH.id)})"
                 )
             }
             if (hasCard) repository.removeNotification(KEY)
@@ -108,72 +111,106 @@ class BluetoothConnectionMonitor(
         if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             if (!permissionLogged) {
                 permissionLogged = true
-                AppLogRecorder.recordCritical("W", TAG, "Bluetooth card cannot work: Nearby devices (BLUETOOTH_CONNECT) is not granted")
+                AppLogRecorder.recordCritical("W", TAG, "tick($reason): Nearby devices (BLUETOOTH_CONNECT) is not granted")
+            }
+            return
+        }
+        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: run {
+            if (!audioMissingLogged) {
+                audioMissingLogged = true
+                AppLogRecorder.recordCritical("W", TAG, "tick($reason): AudioManager unavailable — the card cannot enumerate devices")
             }
             return
         }
 
-        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: run {
-            if (!managerLogged) {
-                managerLogged = true
-                AppLogRecorder.recordCritical("W", TAG, "BluetoothManager service unavailable — the card cannot poll")
+        val btAudioDevices = connectedBluetoothAudioDevices(audio)
+        if (btAudioDevices.isEmpty()) {
+            lastFilteredSignature = null
+            val enumerationFailed = lastIdleSignature?.startsWith("error:") == true
+            if (!enumerationFailed && lastIdleSignature != "empty") {
+                lastIdleSignature = "empty"
+                val total = runCatching {
+                    audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS or AudioManager.GET_DEVICES_INPUTS).size
+                }.getOrDefault(-1)
+                AppLogRecorder.recordCritical(
+                    "I",
+                    TAG,
+                    "tick($reason): no Bluetooth audio device is registered (audio devices total: $total)"
+                )
+            }
+            if (hasCard) {
+                AppLogRecorder.recordCritical("I", TAG, "tick($reason): Bluetooth card cleared — no Bluetooth audio device is connected")
+                repository.removeNotification(KEY)
             }
             return
         }
-        // Audio profiles only. GATT is deliberately excluded: watches, bands and trackers hold a GATT link
-        // around the clock and would otherwise permanently own (or block) the connection card.
-        // LE Audio (API 31+) is included: modern TWS headphones connect through it and never appear on A2DP.
-        val profiles = audioProfiles(Build.VERSION.SDK_INT)
-        val perProfileDevices = profiles.map { profile ->
-            profile to runCatching { manager.getConnectedDevices(profile) }.getOrNull()
+        lastIdleSignature = null
+
+        if (sdkInt < Build.VERSION_CODES.P) {
+            // AudioDeviceInfo.getAddress() is API 28+; without it the device cannot be matched or named.
+            if (!addressUnsupportedLogged) {
+                addressUnsupportedLogged = true
+                AppLogRecorder.recordCritical(
+                    "W",
+                    TAG,
+                    "tick($reason): this Android version cannot resolve Bluetooth audio addresses (needs API 28)"
+                )
+            }
+            return
         }
-        val perProfile = perProfileDevices.map { (profile, devices) -> profile to (devices?.size ?: -1) }
-        val candidates = perProfileDevices
-            .mapNotNull { (_, devices) -> devices }
-            .flatten()
-            .distinctBy { it.address }
-            .filter { candidate ->
-                val candidateName = runCatching { candidate.name }.getOrNull().orEmpty()
-                !BtDeviceClassifier.isIgnoredDevice(candidate, candidateName)
-            }
-            .toList()
+
+        val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        val candidates = btAudioDevices.mapNotNull { info ->
+            val address = info.safeAddress() ?: return@mapNotNull null
+            val device = runCatching { adapter?.getRemoteDevice(address) }.getOrNull() ?: return@mapNotNull null
+            val name = runCatching { device.name }.getOrNull().orEmpty().ifBlank { "Bluetooth Device" }
+            Triple(address, name, device)
+        }
         if (candidates.isEmpty()) {
-            preferredAddress = null
-            if (perProfile.any { (_, count) -> count > 0 }) {
-                // Devices ARE connected but none survived the ignore filter (or the query threw):
-                // the exact state that used to eat the card in silence. Log it when it changes.
-                val seen = perProfileDevices
-                    .mapNotNull { (_, devices) -> devices }
-                    .flatten()
-                    .distinctBy { it.address }
-                    .map { device -> runCatching { device.name }.getOrNull().orEmpty().ifBlank { "?" } }
-                val signature = "$perProfile$seen"
-                if (signature != lastFilteredSignature) {
-                    lastFilteredSignature = signature
-                    AppLogRecorder.recordCritical(
-                        "W",
-                        TAG,
-                        "Bluetooth devices are connected but none survived the filter: per profile: $perProfile, seen: $seen"
-                    )
-                }
-            } else {
-                lastFilteredSignature = null
+            // Routes exist but no address/name could be resolved — impossible to build a card.
+            val signature = "unresolved"
+            if (lastFilteredSignature != signature) {
+                lastFilteredSignature = signature
+                AppLogRecorder.recordCritical(
+                    "W",
+                    TAG,
+                    "tick($reason): ${btAudioDevices.size} Bluetooth audio route(s) registered but none resolved to a device " +
+                        "(adapter ${if (adapter == null) "unavailable" else "present"})"
+                )
             }
+            if (hasCard) repository.removeNotification(KEY)
+            return
+        }
+
+        val kept = candidates.filter { (_, name, device) -> !BtDeviceClassifier.isIgnoredDevice(device, name) }
+        if (kept.isEmpty()) {
+            // Devices ARE connected but none survived the ignore rules — the state that used to eat the
+            // card in silence. Logged when the seen list changes, not on every poll.
+            val seen = candidates.map { (_, name, _) -> name }
+            val signature = "$seen"
+            if (signature != lastFilteredSignature) {
+                lastFilteredSignature = signature
+                AppLogRecorder.recordCritical(
+                    "W",
+                    TAG,
+                    "tick($reason): Bluetooth devices are connected but none survived the filter: seen: $seen"
+                )
+            }
+            preferredAddress = null
             if (hasCard) {
-                // Nothing connected (that we count): clear the card if the broadcast left one behind.
-                AppLogRecorder.recordCritical("I", TAG, "Bluetooth card cleared: no countable device (per profile: $perProfile)")
+                AppLogRecorder.recordCritical("I", TAG, "tick($reason): Bluetooth card cleared — all connected devices are filtered out")
                 repository.removeNotification(KEY)
             }
             return
         }
         lastFilteredSignature = null
+
         // The most recently connected device wins; an address that has dropped off (or an unknown one,
         // e.g. right after a process restart) falls back to whatever is still connected.
-        val preferred = preferredAddress?.let { address -> candidates.firstOrNull { it.address == address } }
+        val preferred = preferredAddress?.let { address -> kept.firstOrNull { (candidate, _, _) -> candidate == address } }
         if (preferred == null) preferredAddress = null
-        val device = preferred ?: candidates.first()
+        val (address, name, device) = preferred ?: kept.first()
 
-        val name = runCatching { device.name }.getOrNull().takeIf { !it.isNullOrBlank() } ?: "Bluetooth Device"
         val category = BtDeviceClassifier.category(device, name)
         val battery = BtDeviceClassifier.batteryLevel(device)
         val text = BtDeviceClassifier.connectedText(category, battery)
@@ -183,9 +220,10 @@ class BluetoothConnectionMonitor(
         AppLogRecorder.recordCritical(
             "I",
             TAG,
-            "Bluetooth card: chose '$name' ($category${if (battery in 0..100) ", $battery%" else ""}) " +
-                "of candidates=${candidates.map { candidate -> runCatching { candidate.name }.getOrNull().orEmpty().ifBlank { "?" } }} " +
-                "per profile: $perProfile, preferred=${preferredAddress ?: "none"}"
+            "tick($reason): Bluetooth card ${if (existing == null) "shown" else "updated"}: '$name' " +
+                "($category${if (battery in 0..100) ", $battery%" else ""}) of " +
+                "candidates=${kept.map { (candidate, candidateName, _) -> "$candidateName@$candidate" }}, " +
+                "preferred=${preferredAddress ?: "none"}"
         )
         repository.postNotification(
             IslandNotification(
@@ -204,15 +242,53 @@ class BluetoothConnectionMonitor(
         )
     }
 
+    /** Every audio route backed by a Bluetooth device (A2DP/SCO now, LE Audio from API 31), deduped by address. */
+    private fun connectedBluetoothAudioDevices(audio: AudioManager): List<AudioDeviceInfo> =
+        runCatching {
+            audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS or AudioManager.GET_DEVICES_INPUTS)
+                .filter { it.type in bluetoothAudioTypes() }
+                .distinctBy { it.dedupeKey() }
+        }.getOrElse { error ->
+            // Decisive logging: the old per-profile queries failed exactly here, in silence.
+            val signature = "error:${error.javaClass.simpleName}"
+            if (lastIdleSignature != signature) {
+                lastIdleSignature = signature
+                AppLogRecorder.recordCritical(
+                    "W",
+                    TAG,
+                    "tick: enumerating audio devices failed: ${error.javaClass.simpleName}: ${error.message.orEmpty()}"
+                )
+            }
+            emptyList()
+        }
+
+    /** The MAC address of the audio route, or null below API 28 / when the route has none. */
+    @SuppressLint("NewApi") // AudioDeviceInfo.getAddress is API 28; [sdkInt] is checked here.
+    private fun AudioDeviceInfo.safeAddress(): String? =
+        if (sdkInt >= Build.VERSION_CODES.P) address.orEmpty().ifBlank { null } else null
+
+    /** Stable identity of a route for dedupe: the address when available, else its type. */
+    @SuppressLint("NewApi")
+    private fun AudioDeviceInfo.dedupeKey(): String = safeAddress() ?: "type:$type"
+
+    @SuppressLint("InlinedApi")
+    private fun bluetoothAudioTypes(): Set<Int> = buildSet {
+        add(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+        add(AudioDeviceInfo.TYPE_BLUETOOTH_SCO)
+        if (sdkInt >= Build.VERSION_CODES.S) {
+            add(AudioDeviceInfo.TYPE_BLE_HEADSET)
+            add(AudioDeviceInfo.TYPE_BLE_SPEAKER)
+        }
+    }
+
     internal companion object {
         private const val TAG = "BluetoothConnectionMonitor"
         private const val KEY = "system_bluetooth"
         private const val POLL_MS = 15_000L
 
         /**
-         * The audio profiles a connection card candidate can come from: classic A2DP/headset, plus LE Audio
-         * from API 31 (modern TWS headphones connect through it and never appear on A2DP). GATT is excluded
-         * on purpose — watches and trackers hold a GATT link around the clock.
+         * The audio profiles the disconnect-handover in [com.jero009.essentialisland.service.SystemEventReceiver]
+         * still queries. The connection card itself enumerates via AudioManager instead (see the class comment).
          */
         @SuppressLint("InlinedApi")
         internal fun audioProfiles(sdkInt: Int): List<Int> = buildList {

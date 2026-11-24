@@ -6,12 +6,15 @@
 
 package com.jero009.essentialisland.util
 
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import com.jero009.essentialisland.data.SmartIslandNotificationRepository
 import com.jero009.essentialisland.data.SmartIslandSettings
 import io.mockk.every
@@ -26,28 +29,46 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Multi-device behaviour of the Bluetooth card: the card follows the device the user connected last
- * (when the system told us), falls back to a device that is still connected, and clears only when
- * nothing countable remains.
+ * Multi-device behaviour of the Bluetooth card: candidates come from AudioManager's registered Bluetooth
+ * audio routes (the path proven to work on Nothing OS), the card follows the device the user connected
+ * last (when the system told us), falls back to a device that is still connected, clears only when no
+ * countable device remains — and every tick decision lands in the diagnostic log.
  */
 class BluetoothConnectionMonitorTest {
 
     private val repo = SmartIslandNotificationRepository()
     private val context = mockk<Context>()
+    private val audioManager = mockk<AudioManager>()
     private val manager = mockk<BluetoothManager>()
+    private val adapter = mockk<BluetoothAdapter>()
     private val settings = SmartIslandSettings.Default.copy(enabled = true)
-    private var connected: List<BluetoothDevice> = emptyList()
+    private var connected: List<AudioDeviceInfo> = emptyList()
+
+    /** The API level the tests run the monitor at: P+ so addresses resolve, S+ so LE routes count. */
+    private val monitorSdkInt = 34
+
+    private fun monitor(provider: () -> SmartIslandSettings = { settings }) =
+        BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo, provider, monitorSdkInt)
 
     @Before
     fun setUp() {
         AppLogRecorder.resetForTest()
         every { context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) } returns
             PackageManager.PERMISSION_GRANTED
+        every { context.getSystemService(Context.AUDIO_SERVICE) } returns audioManager
         every { context.getSystemService(Context.BLUETOOTH_SERVICE) } returns manager
-        every { manager.getConnectedDevices(any()) } answers { connected }
+        every { manager.adapter } returns adapter
+        every { audioManager.getDevices(any()) } answers { connected.toTypedArray() }
     }
 
-    private fun audioDevice(address: String, name: String): BluetoothDevice {
+    private fun audioRoute(address: String, type: Int = AudioDeviceInfo.TYPE_BLUETOOTH_A2DP): AudioDeviceInfo {
+        val info = mockk<AudioDeviceInfo>()
+        every { info.type } returns type
+        every { info.address } returns address
+        return info
+    }
+
+    private fun remoteDevice(address: String, name: String): BluetoothDevice {
         val device = mockk<BluetoothDevice>()
         val btClass = mockk<BluetoothClass>()
         every { btClass.majorDeviceClass } returns BluetoothClass.Device.Major.AUDIO_VIDEO
@@ -55,6 +76,19 @@ class BluetoothConnectionMonitorTest {
         every { device.bluetoothClass } returns btClass
         every { device.name } returns name
         every { device.address } returns address
+        every { adapter.getRemoteDevice(address) } returns device
+        return device
+    }
+
+    private fun wearableRemoteDevice(address: String, name: String): BluetoothDevice {
+        val device = mockk<BluetoothDevice>()
+        val btClass = mockk<BluetoothClass>()
+        every { btClass.majorDeviceClass } returns BluetoothClass.Device.Major.WEARABLE
+        every { btClass.deviceClass } returns BluetoothClass.Device.WEARABLE_WRIST_WATCH
+        every { device.bluetoothClass } returns btClass
+        every { device.name } returns name
+        every { device.address } returns address
+        every { adapter.getRemoteDevice(address) } returns device
         return device
     }
 
@@ -63,25 +97,27 @@ class BluetoothConnectionMonitorTest {
 
     @Test
     fun preferFollowsTheDeviceThatJustConnectedInsteadOfTheStackOrder() {
-        val earbuds = audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
-        val headphones = audioDevice("BB:BB:BB:BB:BB:02", "Sony WH-1000XM5")
-        connected = listOf(earbuds, headphones)
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        remoteDevice("BB:BB:BB:BB:BB:02", "Sony WH-1000XM5")
+        connected = listOf(audioRoute("AA:AA:AA:AA:AA:01"), audioRoute("BB:BB:BB:BB:BB:02"))
+        val monitor = monitor()
 
-        // Without a hint the card shows the stack's first device.
+        // Without a hint the card shows the first route.
         monitor.refreshNow()
         assertEquals("Galaxy Buds Pro", card()?.title)
 
         // The headphones connect: the system tells us their address and the card follows them at once.
         monitor.prefer("BB:BB:BB:BB:BB:02")
         assertEquals("Sony WH-1000XM5", card()?.title)
+        // Every decision is logged with the candidate list.
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("Sony WH-1000XM5"))
     }
 
     @Test
     fun preferredAddressThatDisappearsFallsBackToAConnectedDevice() {
-        val earbuds = audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
-        connected = listOf(earbuds)
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        connected = listOf(audioRoute("AA:AA:AA:AA:AA:01"))
+        val monitor = monitor()
 
         monitor.prefer("BB:BB:BB:BB:BB:02")
         assertEquals("Galaxy Buds Pro", card()?.title)
@@ -89,29 +125,24 @@ class BluetoothConnectionMonitorTest {
 
     @Test
     fun cardClearsOnlyWhenNoCountableDeviceRemains() {
-        val earbuds = audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
-        connected = listOf(earbuds)
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        connected = listOf(audioRoute("AA:AA:AA:AA:AA:01"))
+        val monitor = monitor()
         monitor.refreshNow()
         assertEquals("Galaxy Buds Pro", card()?.title)
 
         connected = emptyList()
         monitor.refreshNow()
         assertNull(card())
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("card cleared"))
     }
 
     @Test
     fun ignoredDevicesNeverOwnTheCard() {
-        val watch = mockk<BluetoothDevice>()
-        val watchClass = mockk<BluetoothClass>()
-        every { watchClass.majorDeviceClass } returns BluetoothClass.Device.Major.WEARABLE
-        every { watchClass.deviceClass } returns BluetoothClass.Device.WEARABLE_WRIST_WATCH
-        every { watch.bluetoothClass } returns watchClass
-        every { watch.name } returns "Galaxy Watch 7"
-        every { watch.address } returns "CC:CC:CC:CC:CC:03"
-        val earbuds = audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
-        connected = listOf(watch, earbuds)
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        wearableRemoteDevice("CC:CC:CC:CC:CC:03", "Galaxy Watch 7")
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        connected = listOf(audioRoute("CC:CC:CC:CC:CC:03"), audioRoute("AA:AA:AA:AA:AA:01"))
+        val monitor = monitor()
 
         monitor.refreshNow()
         assertEquals("Galaxy Buds Pro", card()?.title)
@@ -120,13 +151,10 @@ class BluetoothConnectionMonitorTest {
     /** Watches and trackers hold a GATT link around the clock — GATT devices must never reach the card. */
     @Test
     fun gattOnlyDevicesNeverOwnTheCard() {
-        val watch = mockk<BluetoothDevice>()
-        every { watch.name } returns "Galaxy Watch 7"
-        every { watch.address } returns "CC:CC:CC:CC:CC:03"
-        every { manager.getConnectedDevices(BluetoothProfile.GATT) } returns listOf(watch)
+        every { manager.getConnectedDevices(BluetoothProfile.GATT) } returns listOf(mockk())
         every { manager.getConnectedDevices(BluetoothProfile.A2DP) } returns emptyList()
         every { manager.getConnectedDevices(BluetoothProfile.HEADSET) } returns emptyList()
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        val monitor = monitor()
 
         monitor.refreshNow()
         assertNull(card())
@@ -144,24 +172,31 @@ class BluetoothConnectionMonitorTest {
         assertFalse(BluetoothConnectionMonitor.audioProfiles(26).contains(BluetoothProfile.LE_AUDIO))
     }
 
-    /** DataStore delivers settings async: the first ticks must wait instead of deciding against unloaded defaults. */
+    /** DataStore delivers settings async: unloaded ticks decide nothing, but log the wait once. */
     @Test
     fun ticksStaySilentWhileSettingsAreNotLoadedYet() {
-        connected = listOf(audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro"))
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) {
-            SmartIslandSettings.Default
-        }
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        connected = listOf(audioRoute("AA:AA:AA:AA:AA:01"))
+        val monitor = BluetoothConnectionMonitor(
+            context,
+            CoroutineScope(Dispatchers.Unconfined),
+            repo,
+            { SmartIslandSettings.Default },
+            monitorSdkInt
+        )
 
         monitor.refreshNow()
         assertNull(card())
-        assertEquals(0, AppLogRecorder.getLogCount())
+        assertEquals(1, AppLogRecorder.getLogCount())
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("settings not loaded"))
     }
 
     /** Devices connected but every one filtered out: the log must say what was seen, not stay silent. */
     @Test
     fun connectedButEverythingFilteredLogsWhatItSaw() {
-        connected = listOf(wearableDevice("CC:CC:CC:CC:CC:03", "Galaxy Watch 7"))
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { settings }
+        wearableRemoteDevice("CC:CC:CC:CC:CC:03", "Galaxy Watch 7")
+        connected = listOf(audioRoute("CC:CC:CC:CC:CC:03"))
+        val monitor = monitor()
 
         monitor.refreshNow()
         assertNull(card())
@@ -177,9 +212,10 @@ class BluetoothConnectionMonitorTest {
     /** Island or event switch off: no card, and one line per process saying which gate is closed. */
     @Test
     fun disabledBluetoothEventLogsOnceAndShowsNoCard() {
-        connected = listOf(audioDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro"))
+        remoteDevice("AA:AA:AA:AA:AA:01", "Galaxy Buds Pro")
+        connected = listOf(audioRoute("AA:AA:AA:AA:AA:01"))
         val offSettings = settings.copy(disabledEvents = setOf(com.jero009.essentialisland.model.IslandEvent.BLUETOOTH.id))
-        val monitor = BluetoothConnectionMonitor(context, CoroutineScope(Dispatchers.Unconfined), repo) { offSettings }
+        val monitor = monitor { offSettings }
 
         monitor.refreshNow()
         monitor.refreshNow()
@@ -188,14 +224,28 @@ class BluetoothConnectionMonitorTest {
         assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("Bluetooth card off"))
     }
 
-    private fun wearableDevice(address: String, name: String): BluetoothDevice {
-        val device = mockk<BluetoothDevice>()
-        val btClass = mockk<BluetoothClass>()
-        every { btClass.majorDeviceClass } returns BluetoothClass.Device.Major.WEARABLE
-        every { btClass.deviceClass } returns BluetoothClass.Device.WEARABLE_WRIST_WATCH
-        every { device.bluetoothClass } returns btClass
-        every { device.name } returns name
-        every { device.address } returns address
-        return device
+    /** The old per-profile queries failed in silence — an audio-side enumeration failure must be logged. */
+    @Test
+    fun enumerationFailureIsLoggedInsteadOfSwallowed() {
+        every { audioManager.getDevices(any()) } throws SecurityException("Need BLUETOOTH_CONNECT")
+        val monitor = monitor()
+
+        monitor.refreshNow()
+        assertNull(card())
+        val logged = AppLogRecorder.lastEntryForTest()
+        assertTrue(logged!!.contains("enumerating audio devices failed"))
+        assertTrue(logged.contains("SecurityException"))
+    }
+
+    /** Routes that resolve to nothing (no remote device for the address) are logged, never posted silently. */
+    @Test
+    fun unresolvedRoutesAreLoggedInsteadOfPosted() {
+        connected = listOf(audioRoute("EE:EE:EE:EE:EE:09"))
+        every { adapter.getRemoteDevice(any<String>()) } returns null
+        val monitor = monitor()
+
+        monitor.refreshNow()
+        assertNull(card())
+        assertTrue(AppLogRecorder.lastEntryForTest()!!.contains("none resolved to a device"))
     }
 }
