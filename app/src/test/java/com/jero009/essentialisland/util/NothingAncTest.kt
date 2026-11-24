@@ -101,4 +101,53 @@ class NothingAncTest {
         assertNull(NothingAnc.inEarFromPayload(byteArrayOf(0x01, 0x02, 0x01)))
         assertNull(NothingAnc.inEarFromPayload(ByteArray(0)))
     }
+
+    /** The mode write (0xF00F) carries `01 <mode> 00` — the byte layout the panel's taps produce. */
+    @Test
+    fun ancWriteFrameCarriesTheModePayload() {
+        listOf(1, 2, 3, 4, 5, 7).forEach { mode ->
+            val payload = byteArrayOf(0x01, mode.toByte(), 0x00)
+            val frame = NothingAnc.buildFrame(0xF00F, payload, fsn = 4)
+            assertEquals(13, frame.size)
+            assertEquals(0x55.toByte(), frame[0])
+            assertEquals(0x0F.toByte(), frame[3]) // command LE16 = 0xF00F
+            assertEquals(0xF0.toByte(), frame[4])
+            assertEquals(0x03.toByte(), frame[5]) // length LE16 = 3
+            assertEquals(0x01.toByte(), frame[8])
+            assertEquals(mode.toByte(), frame[9])
+            assertEquals(0x00.toByte(), frame[10])
+            frame[frame.size - 1] = (frame[frame.size - 1] + 1).toByte()
+            assertNull(NothingAnc.parse(frame, 0, frame.size))
+        }
+    }
+
+    /** The panel's live subtitle follows the real mode byte (shown after every write's re-read). */
+    @Test
+    fun ancPanelStateLabelsFollowTheMode() {
+        assertEquals("On · Low", NothingAnc.ancStateLabel(1))
+        assertEquals("On · Mid", NothingAnc.ancStateLabel(2))
+        assertEquals("On · High", NothingAnc.ancStateLabel(3))
+        assertEquals("On · Adaptive", NothingAnc.ancStateLabel(4))
+        assertEquals("Transparency", NothingAnc.ancStateLabel(7))
+        assertEquals("Off", NothingAnc.ancStateLabel(5))
+        assertNull(NothingAnc.ancStateLabel(null))
+        assertNull(NothingAnc.ancStateLabel(9))
+    }
+
+    /** The three mode circles and four level segments map onto the protocol modes exactly. */
+    @Test
+    fun ancPanelStructureCoversTheProtocolModes() {
+        assertEquals(
+            listOf(NothingAnc.MODE_ANC to "Noise Cancellation", NothingAnc.MODE_TRANSPARENCY to "Transparency", NothingAnc.MODE_OFF to "Off"),
+            NothingAnc.ancModes
+        )
+        assertEquals(listOf(1 to "Low", 2 to "Mid", 3 to "High", NothingAnc.MODE_ADAPTIVE to "Adaptive"), NothingAnc.ancLevels)
+        listOf(1, 2, 3, 4).forEach { assertTrue(NothingAnc.isAncActive(it)) }
+        listOf(5, 7, null, 9).forEach { assertFalse(NothingAnc.isAncActive(it)) }
+        assertEquals("Noise Cancellation", NothingAnc.ancModeLabel(1))
+        assertEquals("Transparency", NothingAnc.ancModeLabel(7))
+        assertEquals("Off", NothingAnc.ancModeLabel(5))
+        assertNull(NothingAnc.ancModeLabel(4)) // a level, not a circle mode
+        assertNull(NothingAnc.ancModeLabel(null))
+    }
 }

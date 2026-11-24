@@ -168,7 +168,8 @@ object DemoEvents {
             )
             IslandEvent.BLUETOOTH -> IslandNotification(
                 key = key, packageName = "com.android.bluetooth", appName = "Bluetooth",
-                title = "Wireless earbuds", text = "Connected • 82%", progress = 82, progressMax = 100,
+                title = "Nothing Ear", text = "Connected • 82%", progress = 82, progressMax = 100,
+                category = "bt_earbuds",
                 mode = IslandMode.Bluetooth, timeMillis = now
             )
             IslandEvent.HOTSPOT -> IslandNotification(

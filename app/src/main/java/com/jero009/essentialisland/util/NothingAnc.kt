@@ -40,6 +40,36 @@ object NothingAnc {
     const val MODE_ANC = 1
     const val MODE_OFF = 5
     const val MODE_TRANSPARENCY = 7
+    const val MODE_ADAPTIVE = 4
+
+    /** The three mode circles in display order (Nothing X layout). */
+    val ancModes = listOf(
+        MODE_ANC to "Noise Cancellation",
+        MODE_TRANSPARENCY to "Transparency",
+        MODE_OFF to "Off"
+    )
+
+    /** The four ANC level segments in display order; only shown while the mode is active. */
+    val ancLevels = listOf(1 to "Low", 2 to "Mid", 3 to "High", MODE_ADAPTIVE to "Adaptive")
+
+    /** True when the mode keeps the level segments visible (the ANC family). */
+    fun isAncActive(mode: Int?): Boolean = mode != null && mode in 1..MODE_ADAPTIVE
+
+    /** Label for one of the three mode circles, or null for an unknown mode. */
+    fun ancModeLabel(mode: Int?): String? = ancModes.firstOrNull { it.first == mode }?.second
+
+    /**
+     * The live state line under the section title: "On · Low/Mid/High/Adaptive", "Transparency", "Off".
+     * Null for unknown modes (and for null) — the panel hides those anyway.
+     */
+    fun ancStateLabel(mode: Int?): String? = when {
+        mode == null -> null
+        mode in 1..3 -> "On · " + (ancLevels.firstOrNull { it.first == mode }?.second ?: "")
+        mode == MODE_ADAPTIVE -> "On · Adaptive"
+        mode == MODE_TRANSPARENCY -> "Transparency"
+        mode == MODE_OFF -> "Off"
+        else -> null
+    }
 
     private val opId = AtomicInteger(0)
 

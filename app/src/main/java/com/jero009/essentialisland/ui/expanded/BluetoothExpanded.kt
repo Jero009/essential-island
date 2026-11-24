@@ -143,9 +143,13 @@ fun BluetoothExpanded(
         ancBusy = false
     }
 
-    fun toggleAnc() {
+    /**
+     * Writes one ANC mode (1-3 levels, 4 adaptive, 5 off, 7 transparency) and then re-reads the live
+     * state: the firmware acks writes it sometimes ignores, so the panel shows reality, never the
+     * requested value. Null reply (socket or read failed) keeps the previous state.
+     */
+    fun applyAnc(target: Int) {
         if (ancBusy) return
-        val target = if ((ancMode ?: NothingAnc.MODE_OFF) in 1..4) NothingAnc.MODE_OFF else NothingAnc.MODE_ANC
         scope.launch {
             ancBusy = true
             val newMode = withContext(Dispatchers.IO) {
@@ -164,15 +168,8 @@ fun BluetoothExpanded(
         }
     }
 
-    val ancActive = (ancMode ?: NothingAnc.MODE_OFF) in 1..4
-    val ancLabel = when {
-        ancBusy -> "…"
-        ancMode == null -> "N/A"
-        ancMode == 4 -> "Adaptive"
-        ancActive -> "ANC On"
-        ancMode == NothingAnc.MODE_TRANSPARENCY -> "Transparency"
-        else -> "Off"
-    }
+    /** The panel is the only ANC surface: hidden until the device answers the mode read (same rule as EQ). */
+    val ancPanelLive = ancSupported && ancMode != null
 
     fun cycleEq() {
         if (eqBusy) return
@@ -434,36 +431,98 @@ fun BluetoothExpanded(
         }
     }
 
-        // ANC toggle row: label on the left, inverting state chip on the right (active states invert, never colorize).
-        if (ancSupported) {
-            Spacer(Modifier.height(10.dp))
-            Row(
+        // Noise Cancellation panel (Nothing X layout): title + live state line, three mode circles, and the
+        // level segments while an ANC mode is active. Hidden until the device answers the ANC mode read.
+        if (ancPanelLive) {
+            val ancActive = NothingAnc.isAncActive(ancMode)
+            Spacer(Modifier.height(14.dp))
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 18.dp, end = 18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 18.dp, end = 18.dp)
             ) {
                 Text(
-                    text = "Noise cancellation",
+                    text = "Noise Cancellation",
+                    color = LocalIslandPalette.current.text,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = if (ancBusy) "…" else NothingAnc.ancStateLabel(ancMode) ?: "…",
                     color = LocalIslandPalette.current.text.copy(alpha = 0.5f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (ancActive) LocalIslandPalette.current.text else LocalIslandPalette.current.tint(0.12f))
-                        .clickable { toggleAnc() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = ancLabel,
-                        color = if (ancActive) Color(0xFF111111) else LocalIslandPalette.current.text.copy(alpha = 0.6f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                Spacer(Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    NothingAnc.ancModes.forEach { (value, label) ->
+                        val selected = ancMode == value
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (selected) LocalIslandPalette.current.text
+                                        else LocalIslandPalette.current.tint(0.12f)
+                                    )
+                                    .clickable { applyAnc(value) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AncModeGlyph(
+                                    mode = value,
+                                    tint = if (selected) LocalIslandPalette.current.surface
+                                    else LocalIslandPalette.current.text,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = label,
+                                color = LocalIslandPalette.current.text.copy(alpha = if (selected) 1f else 0.5f),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+                if (ancActive) {
+                    Spacer(Modifier.height(18.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        NothingAnc.ancLevels.forEach { (value, label) ->
+                            val selected = ancMode == value
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 6.dp)
+                                        .height(10.dp)
+                                        .clip(RoundedCornerShape(5.dp))
+                                        .background(
+                                            if (selected) LocalIslandPalette.current.text
+                                            else LocalIslandPalette.current.tint(0.12f)
+                                        )
+                                        .clickable { applyAnc(value) }
+                                )
+                                Spacer(Modifier.height(7.dp))
+                                Text(
+                                    text = label,
+                                    color = LocalIslandPalette.current.text.copy(alpha = if (selected) 1f else 0.5f),
+                                    fontSize = 12.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -608,3 +667,62 @@ internal fun SlashableIcon(
 }
 
 internal val CONNECTION_LOST_RED = Color(0xFFEF4444)
+
+/**
+ * The three Nothing X ANC mode glyphs, drawn on canvas so they match the reference exactly:
+ * Noise Cancellation = ring + centre dot, Transparency = dotted ring + centre dot,
+ * Off = ring with a top-right gap cut by a diagonal slash.
+ */
+@androidx.compose.runtime.Composable
+internal fun AncModeGlyph(mode: Int, tint: Color, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val stroke = size.width * 0.08f
+        val radius = size.minDimension / 2f - stroke
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        when (mode) {
+            NothingAnc.MODE_TRANSPARENCY -> {
+                // Dotted ring: small dots around the circle, plus the centre dot.
+                val dots = 9
+                val dotRadius = stroke / 1.6f
+                repeat(dots) { index ->
+                    val angle = Math.toRadians((index * 360.0 / dots) - 90.0)
+                    val position = center + androidx.compose.ui.geometry.Offset(
+                        (radius * kotlin.math.cos(angle)).toFloat(),
+                        (radius * kotlin.math.sin(angle)).toFloat()
+                    )
+                    drawCircle(tint, radius = dotRadius, center = position)
+                }
+                drawCircle(tint, radius = stroke * 1.4f, center = center)
+            }
+            NothingAnc.MODE_OFF -> {
+                // Ring with a gap where the slash crosses it, then the diagonal slash.
+                val gapStart = -80f
+                drawArc(
+                    color = tint,
+                    startAngle = gapStart + 46f,
+                    sweepAngle = 360f - 46f,
+                    useCenter = false,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                )
+                val inset = radius * 0.52f
+                drawLine(
+                    tint,
+                    androidx.compose.ui.geometry.Offset(center.x + inset, center.y - inset),
+                    androidx.compose.ui.geometry.Offset(center.x - inset, center.y + inset),
+                    strokeWidth = stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
+            else -> {
+                // Noise Cancellation: plain ring with a centre dot.
+                drawCircle(
+                    tint,
+                    radius = radius,
+                    center = center,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                )
+                drawCircle(tint, radius = stroke * 1.4f, center = center)
+            }
+        }
+    }
+}
