@@ -506,11 +506,17 @@ internal fun Modifier.islandMainGestures(
                                 }
                             }
                             // Swipe down stretches the island downward with the finger (only where a swipe down means something).
+                            // An empty/idle pill (no cards, no idle widget) stays completely rigid: Jernej — swipes
+                            // on the empty pill must not lean, stretch or jiggle it at all. Actions still fire on lift.
+                            val pillEmpty = SwipeFeel.collapsedPillFrozen(
+                                hasCards = cb.currentNotifications.isNotEmpty(),
+                                widgetOnPill = ui.idleWidgetCycle != null && ui.idleFrameNow != null
+                            )
                             val pullAllowed = if (wasExpandedAtStart) {
                                 cb.currentSettings.enableSwipeActions && !pickerOpenAtStart &&
                                     (stepsActive || com.jero009.essentialisland.model.FIXED_EXPANDED_SWIPE_DOWN_ACTION != SwipeAction.None)
                             } else {
-                                !pillGestureTriggered && cb.currentSettings.enablePillSwipeActions &&
+                                !pillEmpty && !pillGestureTriggered && cb.currentSettings.enablePillSwipeActions &&
                                     com.jero009.essentialisland.model.FIXED_PILL_SWIPE_DOWN_ACTION != SwipeAction.None
                             } && sensitivity.isVertical(dragAccumulatorX, dragAccumulatorY)
                             ui.swipeDownPull = if (pullAllowed && stepMode != 1 && stepMode != -1) {
@@ -585,13 +591,22 @@ internal fun Modifier.islandMainGestures(
                                     dragAccumulatorY.coerceAtLeast(-DRAG_MAX_OFFSET_DP * displayMetrics.density)
                                 }
                             } else {
-                                ui.pillDragOffsetX = softFollow(dragAccumulatorX, 0.35f, 24f * displayMetrics.density)
-                                ui.dragOffset = softFollow(
-                                    dragAccumulatorY, 0.35f, SwipeFeel.PILL_LEAN_Y_MAX_DP * displayMetrics.density
-                                )
+                                // An empty/idle pill stays rigid: no horizontal follow, no vertical lean, no content
+                                // slide, no arm swell (the gate is SwipeFeel.collapsedPillFrozen, see pillEmpty above).
+                                // The arming/commit logic below still runs, so configured actions still fire on lift.
+                                if (pillEmpty) {
+                                    ui.pillDragOffsetX = 0f
+                                    ui.dragOffset = 0f
+                                    ui.pillContentDragX = 0f
+                                } else {
+                                    ui.pillDragOffsetX = softFollow(dragAccumulatorX, 0.35f, 24f * displayMetrics.density)
+                                    ui.dragOffset = softFollow(
+                                        dragAccumulatorY, 0.35f, SwipeFeel.PILL_LEAN_Y_MAX_DP * displayMetrics.density
+                                    )
+                                }
 
                                 val pillHorizontal = sensitivity.isHorizontal(dragAccumulatorX, dragAccumulatorY)
-                                ui.pillContentDragX = if (pillHorizontal) {
+                                ui.pillContentDragX = if (!pillEmpty && pillHorizontal) {
                                     softFollow(dragAccumulatorX, PILL_CONTENT_FOLLOW, maxSlidePx)
                                 } else 0f
                                 // A swipe on the pill keeps the secondary cutout's auto-merge timer (and the auto-
@@ -610,7 +625,10 @@ internal fun Modifier.islandMainGestures(
                                         holdJob.cancel()
                                         IslandHaptics.play(context, HapticStrength.fromId(cb.currentSettings.hapticStrength), HapticKind.Merge)
                                         val armed = pillArming.direction != null
-                                        scope.launch { ui.pillArm.animateTo(if (armed) 1f else 0f, swipeCalmSpring()) }
+                                        // The arm swell is a visual: the empty pill must not pulse (armed or not).
+                                        if (!pillEmpty) {
+                                            scope.launch { ui.pillArm.animateTo(if (armed) 1f else 0f, swipeCalmSpring()) }
+                                        }
                                     }
                                 }
                             }
@@ -621,7 +639,8 @@ internal fun Modifier.islandMainGestures(
                             } else {
                                 !pillGestureTriggered && (cb.currentSettings.enablePillSwipeActions || idleWidgetSwipe()) && pillArming.direction != null
                             }
-                            showDeadZone(!pillGestureTriggered && deadZoneCue(tapGuard.exceeded, liftFires, stepFollowsFinger(stepMode)))
+                            // The dead-zone cue shrinks the island — also a movement the empty pill must not do.
+                            showDeadZone(!pillEmpty && !pillGestureTriggered && deadZoneCue(tapGuard.exceeded, liftFires, stepFollowsFinger(stepMode)))
                         }
                     }
                 }

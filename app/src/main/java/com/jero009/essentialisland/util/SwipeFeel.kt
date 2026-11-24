@@ -30,6 +30,14 @@ object SwipeFeel {
     /** How far (dp) the collapsed pill and the corner pill lean vertically with the finger (35 % of the drag, capped). */
     const val PILL_LEAN_Y_MAX_DP = 6f
 
+    /**
+     * True when the collapsed pill has nothing on it (no card and no idle widget) and must stay completely
+     * rigid under swipes: no lean, no stretch, no content slide, no arm swell — the gestures still arm and
+     * fire their configured actions on lift, but nothing visual moves. Jernej: "the island is bouncy when
+     * empty … make it fixed".
+     */
+    fun collapsedPillFrozen(hasCards: Boolean, widgetOnPill: Boolean): Boolean = !hasCards && !widgetOnPill
+
     /** The small squash when a switch puts another card in the island: a shallow dip and an overshoot-free return. */
     const val SWITCH_SQUASH_SCALE = 0.96f
     const val SWITCH_RETURN_DAMPING_RATIO = 1f
