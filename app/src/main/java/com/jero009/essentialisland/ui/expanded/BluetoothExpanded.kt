@@ -66,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import com.jero009.essentialisland.util.EarbudsStateStore
 import com.jero009.essentialisland.util.NothingAnc
 import com.jero009.essentialisland.util.NothingAncClient
 import kotlinx.coroutines.Dispatchers
@@ -109,38 +110,31 @@ fun BluetoothExpanded(
         NothingAnc.isSupportedDevice(deviceName)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var ancMode by remember { mutableStateOf<Int?>(null) }
+    // The rows render only from state that was known when the card composed: rows appearing mid-session
+    // grow the measured height under the expanded shell and freeze the expand morph (v1.12.0 regression).
+    // The store is pre-warmed by the connection monitor when the pill appears, so by tap time the data
+    // is normally there; a read that lands mid-session goes to the store for the NEXT expansion.
+    val storedAtCompose = remember(deviceName) { EarbudsStateStore.snapshot(deviceName) }
+    val storeColdAtCompose = storedAtCompose == null
+    var ancMode by remember(deviceName) { mutableStateOf(storedAtCompose?.ancMode) }
     var ancBusy by remember { mutableStateOf(false) }
-    var eqPreset by remember { mutableStateOf<Int?>(null) }
+    var eqPreset by remember(deviceName) { mutableStateOf(storedAtCompose?.eqPreset) }
     var eqBusy by remember { mutableStateOf(false) }
-    var inEarOn by remember { mutableStateOf<Boolean?>(null) }
+    var inEarOn by remember(deviceName) { mutableStateOf(storedAtCompose?.inEarOn) }
     var inEarBusy by remember { mutableStateOf(false) }
 
     // One RFCOMM session answers every initial read: opening two sockets to the same earbuds at once is flaky.
     LaunchedEffect(deviceName, ancSupported) {
         if (!ancSupported) return@LaunchedEffect
-        ancBusy = true
-        val read = withContext(Dispatchers.IO) {
-            val device = NothingAnc.findConnectedDevice(context, deviceName) ?: return@withContext null
-            val client = NothingAncClient(device)
-            try {
-                if (!client.connect()) return@withContext null
-                val cmf = NothingAnc.isCmfDevice(deviceName)
-                Triple(
-                    client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) },
-                    client.readEqPreset(cmf)?.let { NothingAnc.presetFromPayload(it) },
-                    client.readInEar()?.let { NothingAnc.inEarFromPayload(it) }
-                )
-            } finally {
-                client.close()
-            }
-        }
-        if (read != null) {
-            ancMode = read.first
-            eqPreset = read.second
-            inEarOn = read.third
-        }
-        ancBusy = false
+        val read = EarbudsStateStore.refreshFromDevice(context, deviceName) ?: return@LaunchedEffect
+        val session = EarbudsStateStore.sessionLayoutAfterRead(
+            storeColdAtCompose,
+            EarbudsStateStore.Snapshot(ancMode, eqPreset, inEarOn),
+            read
+        ) ?: return@LaunchedEffect
+        ancMode = session.ancMode
+        eqPreset = session.eqPreset
+        inEarOn = session.inEarOn
     }
 
     /**
@@ -163,7 +157,10 @@ fun BluetoothExpanded(
                     client.close()
                 }
             }
-            if (newMode != null) ancMode = newMode
+            if (newMode != null) {
+                ancMode = newMode
+                EarbudsStateStore.put(deviceName, EarbudsStateStore.Snapshot(ancMode, eqPreset, inEarOn))
+            }
             ancBusy = false
         }
     }
@@ -190,7 +187,10 @@ fun BluetoothExpanded(
                     client.close()
                 }
             }
-            if (updated != null) eqPreset = updated
+            if (updated != null) {
+                eqPreset = updated
+                EarbudsStateStore.put(deviceName, EarbudsStateStore.Snapshot(ancMode, eqPreset, inEarOn))
+            }
             eqBusy = false
         }
     }
@@ -210,7 +210,10 @@ fun BluetoothExpanded(
                     client.close()
                 }
             }
-            if (updated != null) inEarOn = updated
+            if (updated != null) {
+                inEarOn = updated
+                EarbudsStateStore.put(deviceName, EarbudsStateStore.Snapshot(ancMode, eqPreset, inEarOn))
+            }
             inEarBusy = false
         }
     }

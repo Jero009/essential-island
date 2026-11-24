@@ -240,6 +240,13 @@ class BluetoothConnectionMonitor(
             ),
             autoExpand = false
         )
+        // Pre-warm the earbuds state (ANC mode, EQ preset, in-ear) so the expanded card composes at its
+        // final height from the first frame — a read landing after the card is shown grows the measured
+        // height under the expanded shell and freezes the expand morph. Once per device per process;
+        // the expanded card re-reads on open.
+        if (NothingAnc.isSupportedDevice(name) && !EarbudsStateStore.hasBeenAttempted(name)) {
+            scope.launch { EarbudsStateStore.refreshFromDevice(context, name) }
+        }
     }
 
     /** Every audio route backed by a Bluetooth device (A2DP/SCO now, LE Audio from API 31), deduped by address. */

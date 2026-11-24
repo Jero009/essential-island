@@ -335,9 +335,9 @@ fun IslandExpandedContent(
             val nextHeight = (nextHeightRaw?.let { clampHeightForMode(nextNotification, it) }
                 ?: com.jero009.essentialisland.ui.defaultEstimatedHeightForMode(nextNotification?.mode))
             val fraction = kotlin.math.abs(offsetFraction)
-            // The global shell cap sits above every per-mode clamp (Bluetooth's ANC panel is the tallest card),
-            // so raising it changes nothing for the modes whose own clamp binds first.
-            (currentPageHeight + (nextHeight - currentPageHeight) * fraction).coerceIn(72.dp, 360.dp)
+            // The global shell cap sits above every per-mode clamp (Bluetooth's ANC panel + EQ + in-ear rows
+            // are the tallest card), so raising it changes nothing for the modes whose own clamp binds first.
+            (currentPageHeight + (nextHeight - currentPageHeight) * fraction).coerceIn(72.dp, 420.dp)
         }
         // The gesture supplies the dragged step's height (the shell reads it directly), so nothing here recomposes per frame.
         val stepDrag = LocalStepDrag.current
@@ -924,7 +924,7 @@ internal fun clampCardHeightForMode(mode: IslandMode?, height: Dp): Dp = when (m
     IslandMode.Navigation -> height.coerceIn(NAVIGATION_EXPANDED_HEIGHT, NAVIGATION_EXPANDED_HEIGHT + 20.dp)
     IslandMode.DownloadUpload -> height.coerceIn(120.dp, 195.dp)
     IslandMode.Hotspot -> height.coerceIn(120.dp, 195.dp)
-    IslandMode.Bluetooth -> height.coerceIn(72.dp, 360.dp)
+    IslandMode.Bluetooth -> height.coerceIn(72.dp, 420.dp)
     IslandMode.Flashlight -> height.coerceIn(72.dp, 130.dp)
     IslandMode.ScreenRecording -> height.coerceIn(72.dp, 130.dp)
     IslandMode.AudioRecording -> height.coerceIn(72.dp, 130.dp)
