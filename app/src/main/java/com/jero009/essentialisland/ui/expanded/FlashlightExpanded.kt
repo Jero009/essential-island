@@ -64,11 +64,12 @@ fun FlashlightExpanded(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // The shared expanded-card icon grammar: a 44 dp neutral circle, glyph carries the semantics.
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(torchColor.copy(alpha = 0.25f)),
+                    .background(LocalIslandPalette.current.tint(0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

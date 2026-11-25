@@ -189,6 +189,7 @@ fun LiveActivityExpanded(
             ) {
                 val trackColor = LocalIslandPalette.current.tint(0.2f)
                 val currentRing = LocalIslandPalette.current.inverseFill
+                val endDot = LocalIslandPalette.current.textMuted
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val width = size.width
                     val cy = size.height / 2f
@@ -216,7 +217,7 @@ fun LiveActivityExpanded(
                     drawCircle(color = currentRing, radius = 6.dp.toPx(), center = Offset(currentX, cy))
                     drawCircle(color = brandColor, radius = 4.dp.toPx(), center = Offset(currentX, cy))
 
-                    drawCircle(color = Color(0xFF64748B), radius = 4.dp.toPx(), center = Offset(width - 12.dp.toPx(), cy))
+                    drawCircle(color = endDot, radius = 4.dp.toPx(), center = Offset(width - 12.dp.toPx(), cy))
                 }
             }
 
@@ -260,7 +261,7 @@ fun LiveActivityExpanded(
                         ) {
                             Text(
                                 text = action.title,
-                                color = Color(0xFF1F2937),
+                                color = LocalIslandPalette.current.chipText,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             )

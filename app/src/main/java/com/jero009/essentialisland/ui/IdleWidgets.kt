@@ -766,8 +766,9 @@ private const val IDLE_WIDGET_MIN_DP = 20f
 /** Cutouts up to this wide (dp) count as the small circle. The narrowest portrait pill is wider (76 dp). */
 internal const val IDLE_WIDGET_COMPACT_MAX_DP = 60f
 
-private val GREEN = Color(0xFF34C759)
-private val RED = Color(0xFFFF453A)
+// The palette's semantic pair: green for positive widget states, red for the urgent one.
+private val GREEN = Color(0xFF10B981)
+private val RED = Color(0xFFD71921)
 private val SOFT_WHITE = Color(0xFFE5E7EB)
 
 /**

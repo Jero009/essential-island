@@ -68,12 +68,13 @@ fun resolveBatteryVisual(category: String?, title: String?, pct: Float): Battery
     }
 }
 
-private val LowRed = Color(0xFFFF4D5A)
-private val SaverAmber = Color(0xFFFFB81F)
+/** The two semantic battery colours: the one red (urgent) and the one green (positive), nothing in between. */
+private val LowRed = Color(0xFFD71921)
+private val SaverGreen = Color(0xFF10B981)
 
 /** Battery colours are shown vivid: the user's colour pushed to (nearly) full brightness, hue kept. */
 fun batteryVisualColor(visual: BatteryVisual, userColor: Color): Color = when (visual) {
-    BatteryVisual.Saver -> SaverAmber
+    BatteryVisual.Saver -> vivid(SaverGreen)
     BatteryVisual.Low, BatteryVisual.PluggedOut -> LowRed
     else -> vivid(userColor)
 }

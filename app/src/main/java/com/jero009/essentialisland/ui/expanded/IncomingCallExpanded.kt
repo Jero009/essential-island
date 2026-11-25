@@ -137,7 +137,7 @@ private fun CallControlButton(
 ) {
     val context = LocalContext.current
     val (background, tint, icon) = when (control.role) {
-        CallActionRole.HangUp -> Triple(Color(0xFFE11D48), Color.White, Icons.Rounded.CallEnd)
+        CallActionRole.HangUp -> Triple(LocalIslandPalette.current.danger, Color.White, Icons.Rounded.CallEnd)
         CallActionRole.Answer -> Triple(Color(settings.callColor), Color.White, Icons.Rounded.Call)
         CallActionRole.Mute -> toggleStyle(control.active, Icons.Rounded.MicOff, Icons.Rounded.Mic)
         else -> toggleStyle(control.active, Icons.Rounded.VolumeUp, Icons.Rounded.VolumeUp)

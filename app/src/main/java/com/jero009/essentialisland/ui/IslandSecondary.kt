@@ -364,17 +364,18 @@ internal fun SecondaryBubbleContent(
             )
         }
         IslandMode.Flashlight -> {
+            // The setting drives the colour (accent yellow by default), like every other secondary glyph.
             Box(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF59E0B).copy(alpha = 0.25f)),
+                    .background(Color(settings.flashlightColor).copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Rounded.FlashlightOn,
                     contentDescription = "Flashlight",
-                    tint = Color(0xFFFACC15),
+                    tint = Color(settings.flashlightColor),
                     modifier = Modifier.size(12.dp)
                 )
             }

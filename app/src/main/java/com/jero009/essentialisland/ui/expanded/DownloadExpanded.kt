@@ -313,7 +313,7 @@ fun DownloadExpanded(
                     ) {
                         Text(
                             text = action.title,
-                            color = Color(0xFF1F2937),
+                            color = LocalIslandPalette.current.chipText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )

@@ -240,18 +240,19 @@ fun BluetoothExpanded(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f, fill = false)
         ) {
+            // The shared expanded-card icon grammar: a 44 dp neutral circle, glyph carries the semantics.
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.2f)),
+                    .background(LocalIslandPalette.current.tint(0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = connectivityLeadingIcon(notification?.category),
                     contentDescription = "Connection",
                     tint = accent,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
@@ -669,7 +670,7 @@ internal fun SlashableIcon(
     }
 }
 
-internal val CONNECTION_LOST_RED = Color(0xFFEF4444)
+internal val CONNECTION_LOST_RED = Color(0xFFD71921)
 
 /**
  * The three Nothing X ANC mode glyphs, drawn on canvas so they match the reference exactly:

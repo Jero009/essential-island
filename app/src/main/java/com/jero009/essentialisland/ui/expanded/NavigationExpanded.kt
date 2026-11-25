@@ -172,7 +172,7 @@ fun NavigationExpanded(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(LocalIslandPalette.current.pick(Color(0xFF1E293B), Color(0xFFE4E2E6)))
+                .background(LocalIslandPalette.current.tint(0.12f))
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -262,7 +262,7 @@ fun NavigationExpanded(
                         ) {
                             Text(
                                 text = action.title,
-                                color = Color(0xFF1F2937),
+                                color = LocalIslandPalette.current.chipText,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             )

@@ -262,7 +262,7 @@ private fun TimerExpandedMiui(
                 }
                 Text(
                     text = timerSubtitle,
-                    color = if (remainingSec == 0L && !isPaused) Color(0xFFEF4444) else timerColor,
+                    color = if (remainingSec == 0L && !isPaused) LocalIslandPalette.current.danger else timerColor,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -352,7 +352,7 @@ private fun TimerExpandedMiui(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF27272A))
+                    .background(LocalIslandPalette.current.tint(0.15f))
                     .bounceClick {
                         if (stopAction?.pendingIntent != null && notification != null) {
                             triggerAction(context, notification.packageName, stopAction.pendingIntent, stopAction.title, notification.contentIntent)
@@ -366,7 +366,7 @@ private fun TimerExpandedMiui(
                 Icon(
                     imageVector = Icons.Rounded.Stop,
                     contentDescription = "Stop",
-                    tint = Color(0xFFEF4444),
+                    tint = LocalIslandPalette.current.danger,
                     modifier = Modifier.size(18.dp)
                 )
             }

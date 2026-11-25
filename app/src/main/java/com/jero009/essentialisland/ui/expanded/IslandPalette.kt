@@ -49,7 +49,8 @@ class IslandPalette private constructor(val isLight: Boolean) {
 
     /** Formerly a cyan accent — now monochrome ink: Nothing keeps icons single-colour (white on dark, black on light). */
     val accentCyan: Color = if (isLight) Color(0xFF0A0A0A) else Color(0xFFFFFFFF)
-    val danger: Color = if (isLight) Color(0xFFB91C1C) else Color(0xFFEF4444)
+    /** The one urgent/destructive red (Nothing's recording red); green ([success]) is its positive twin. */
+    val danger: Color = if (isLight) Color(0xFFB91C1C) else Color(0xFFD71921)
     val success: Color = if (isLight) Color(0xFF047857) else Color(0xFF10B981)
     val warning: Color = if (isLight) Color(0xFFA04A08) else Color(0xFFF59E0B)
 

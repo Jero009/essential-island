@@ -271,7 +271,7 @@ private fun StopwatchExpandedMiui(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF27272A))
+                    .background(LocalIslandPalette.current.tint(0.15f))
                     .bounceClick {
                         // Clock does not record laps while the stopwatch is paused.
                         if (!isPaused) {
@@ -293,7 +293,7 @@ private fun StopwatchExpandedMiui(
                 Icon(
                     imageVector = Icons.Rounded.Flag,
                     contentDescription = "Lap",
-                    tint = Color(0xFFE4E4E7),
+                    tint = LocalIslandPalette.current.text,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -351,7 +351,7 @@ private fun StopwatchExpandedMiui(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF3F3F46))
+                    .background(LocalIslandPalette.current.tint(0.28f))
                     .bounceClick {
                         if (resetAction?.pendingIntent != null && notification != null) {
                             triggerAction(context, notification.packageName, resetAction.pendingIntent, resetAction.title, notification.contentIntent)
@@ -365,7 +365,7 @@ private fun StopwatchExpandedMiui(
                 Icon(
                     imageVector = Icons.Rounded.Refresh,
                     contentDescription = "Reset",
-                    tint = Color(0xFFE4E4E7),
+                    tint = LocalIslandPalette.current.text,
                     modifier = Modifier.size(16.dp)
                 )
             }
