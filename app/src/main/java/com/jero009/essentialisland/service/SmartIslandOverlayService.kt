@@ -433,6 +433,12 @@ class SmartIslandOverlayService : AccessibilityService() {
     private var lastWindowRefreshMs = 0L
     private var windowRefreshPending = false
     private val windowHandler by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
+    // Bound-but-windowless self-check (OverlaySelfCheck): armed after every session start to verify
+    // that the pill window really exists, re-adding it with a bounded backoff when a re-add failed
+    // silently. stopOverlaySession disarms it, so it never fights a user's master switch.
+    private var selfCheckAttempts = 0
+    private var windowSelfCheckPending = false
+    private val windowSelfCheckRunnable = Runnable { runWindowSelfCheck() }
     private val windowRefreshRunnable = Runnable {
         windowRefreshPending = false
         if (destroyed || !::viewModel.isInitialized) return@Runnable
@@ -1188,6 +1194,7 @@ class SmartIslandOverlayService : AccessibilityService() {
             ) {
                 ensureForegroundStarted()
                 ensureCollapsedWindow()
+                scheduleWindowSelfCheck(com.jero009.essentialisland.util.OverlaySelfCheck.FIRST_CHECK_MS)
             }
         }
     }
@@ -1203,6 +1210,8 @@ class SmartIslandOverlayService : AccessibilityService() {
         serviceScope.cancel()
         windowHandler.removeCallbacks(windowRefreshRunnable)
         windowHandler.removeCallbacks(settleScanRunnable)
+        cancelWindowSelfCheck()
+        selfCheckAttempts = 0
         windowRefreshPending = false
         windowPackageCache.clear()
 
@@ -1270,16 +1279,64 @@ class SmartIslandOverlayService : AccessibilityService() {
             shadeSyncRequested = true
             notificationRepository.sendCommand(com.jero009.essentialisland.data.SmartIslandCommand.SyncShade)
         }
+        // Verify that the pill window really exists — windowManager.addView can fail silently.
+        scheduleWindowSelfCheck(com.jero009.essentialisland.util.OverlaySelfCheck.FIRST_CHECK_MS)
     }
 
     private var shadeSyncRequested = false
 
     private fun stopOverlaySession() {
         shadeSyncRequested = false
+        cancelWindowSelfCheck()
         removeCollapsedWindow()
         stopForegroundSafely()
         if (::viewModel.isInitialized) {
             viewModel.collapse()
+        }
+    }
+
+    private fun scheduleWindowSelfCheck(delayMs: Long) {
+        if (destroyed || windowSelfCheckPending) return
+        windowSelfCheckPending = true
+        windowHandler.postDelayed(windowSelfCheckRunnable, delayMs)
+    }
+
+    private fun cancelWindowSelfCheck() {
+        windowHandler.removeCallbacks(windowSelfCheckRunnable)
+        windowSelfCheckPending = false
+    }
+
+    // A bound service with the island switched on must always own the pill window: every
+    // intentional hide (lock screen, landscape, exempt apps) only flips the view's visibility and
+    // never removes the window. When the window is gone anyway — an add that failed silently after
+    // a process kill, or a view the system detached — re-add it with a bounded backoff, then keep
+    // slow 30s retries alive while the fault persists so a late OEM quirk cannot leave a dead island.
+    private fun runWindowSelfCheck() {
+        windowSelfCheckPending = false
+        if (destroyed || !::viewModel.isInitialized) return
+        val attached = islandView?.isAttachedToWindow == true
+        val settings = viewModel.displaySettings.value
+        if (!com.jero009.essentialisland.util.OverlaySelfCheck.windowLost(isSystemConnected, settings.enabled, attached)) {
+            if (attached) selfCheckAttempts = 0
+            return
+        }
+        val attempt = selfCheckAttempts
+        selfCheckAttempts = attempt + 1
+        // Keep the always-on log to two lines per fault episode: first detection and the first slow retry.
+        if (attempt == 0 || attempt == com.jero009.essentialisland.util.OverlaySelfCheck.MAX_FAST_ATTEMPTS) {
+            com.jero009.essentialisland.util.AppLogRecorder.recordCritical(
+                "W", TAG,
+                "windowless self-check: service bound and island enabled but the pill window is gone; re-adding (attempt ${attempt + 1})"
+            )
+        }
+        // A detached view still blocks ensureCollapsedWindow, so clear the stale reference first.
+        if (islandView != null) removeCollapsedWindow()
+        startOverlaySession(settings)
+        // startOverlaySession armed the 2s verification check; when the re-add failed again,
+        // replace it with the backoff delay so repeated failures do not hammer addView every 2s.
+        if (islandView?.isAttachedToWindow != true) {
+            cancelWindowSelfCheck()
+            scheduleWindowSelfCheck(com.jero009.essentialisland.util.OverlaySelfCheck.retryDelayMs(attempt))
         }
     }
 

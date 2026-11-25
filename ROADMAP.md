@@ -1,6 +1,6 @@
 # Smart Island Product Roadmap
 
-Last updated: November 23, 2026
+Last updated: November 25, 2026
 
 ## Essential Island fork roadmap
 
@@ -16,13 +16,13 @@ Shipped so far:
 - ANC on/off on the expanded card (NT LINK, live state read-back)
 - EQ preset cycling and in-ear detection on the earbuds card (v1.11.0)
 - Glyph-aware handling: per-app Keep in system shade so Nothing Essential notifications keep their Glyph, with a Mirror Only hint
+- Recovery hardening after system process kills: a bound-but-windowless self-check re-adds the pill window with a bounded backoff, and the notification listener's reconnect nudges the accessibility rebind when the system skips it (v1.14.0)
 
 Next candidates (in no committed order):
 
 - Custom 3-band EQ editing (bass/mid/treble, −6…+6) and bass boost on supported models
 - Gesture / key configuration reading on the earbuds card
 - Find-my-earbuds ping from the card
-- Recovery hardening after system process kills (bound-but-windowless self-check) — the island dies for 1–2 s whenever Android revokes a runtime permission and must rebind cleanly on every OEM
 
 ---
 

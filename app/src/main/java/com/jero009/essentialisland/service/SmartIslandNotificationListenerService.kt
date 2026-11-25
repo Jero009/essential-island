@@ -699,6 +699,11 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         isSystemConnected = true
+        // After a process kill (e.g. a revoked runtime permission) the system restarts both bound
+        // services, but some OEM builds never re-bind the accessibility service on their own. This
+        // listener returns reliably (~10s later), so nudge the rebind from here — requestRecovery
+        // is a no-op for both services while they are connected.
+        com.jero009.essentialisland.util.SystemServiceRecovery.requestRecovery(applicationContext)
         scheduleCountRefresh()
         com.jero009.essentialisland.util.AppLogRecorder.i(
             "ListenerLifecycle",
