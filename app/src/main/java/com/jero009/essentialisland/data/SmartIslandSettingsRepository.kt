@@ -1256,9 +1256,6 @@ class SmartIslandSettingsRepository(private val context: Context) {
     suspend fun setAccentColor(value: Long) = editSafely {
         it[Keys.AccentColor] = validColor(value, SmartIslandSettings.Default.accentColor)
     }
-    suspend fun setExpandedTheme(value: String) = editSafely {
-        it[Keys.ExpandedTheme] = if (value in SmartIslandSettings.VALID_EXPANDED_THEMES) value else SmartIslandSettings.Default.expandedTheme
-    }
     suspend fun setIslandFont(value: String) = editSafely {
         it[Keys.IslandFont] = if (SmartIslandSettings.isValidFont(value)) value else SmartIslandSettings.Default.islandFont
     }
@@ -1281,6 +1278,9 @@ class SmartIslandSettingsRepository(private val context: Context) {
     }
     suspend fun setRecordLogs(value: Boolean) = editSafely {
         it[Keys.RecordLogs] = value
+    }
+    suspend fun setDeveloperModeEnabled(value: Boolean) = editSafely {
+        it[Keys.DeveloperModeEnabled] = value
     }
     suspend fun setEnableNotchMode(value: Boolean) = editSafely {
         it[Keys.EnableNotchMode] = value

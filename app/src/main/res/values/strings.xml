@@ -87,6 +87,7 @@
     <string name="card_notification_history_status_disabled">Disabled</string>
     <string name="card_color_studio_title">Colors &amp; Opacity</string>
     <string name="card_color_studio_desc">Background opacity, album backdrop &amp; color themes</string>
+    <string name="per_card_colors_desc">A colour for each card type; the palette default is usually right</string>
     <string name="card_color_studio_status">%1$d%% Opacity</string>
     <string name="card_gestures_guide_title">Gestures</string>
     <string name="card_gestures_guide_desc">Gesture guide, tour &amp; swipe actions</string>
@@ -307,6 +308,8 @@
     <string name="expanded_swipe_customization_desc">Customize actions when swiping on the expanded island card</string>
     <string name="oem_rules_title">Device Profile &amp; OEM Rules</string>
     <string name="oem_rules_desc">Tailored rules for Xiaomi, Samsung, Vivo, Realme, OnePlus &amp; more</string>
+    <string name="network_data_title">Network &amp; data</string>
+    <string name="network_data_desc">Offline mode and the network-speed transfer detector</string>
     <string name="select_device_oem">Select Device Manufacturer / ROM</string>
     <string name="auto_detect_device">Auto-Detect: %1$s</string>
     <string name="active_rules_title">Active Rules: %1$s</string>
@@ -688,6 +691,8 @@
     <string name="sibling_picker_close">Close list</string>
     <string name="card_about_title">About</string>
     <string name="card_about_subtitle">Version, the original project and licences</string>
+    <string name="dev_unlock_hint">Tap the version 7 times to unlock developer options</string>
+    <string name="dev_unlocked_toast">Developer options unlocked</string>
     <string name="detail_title_about">About</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_based_on_title">Based on SmartIsland 7.6.0</string>
@@ -702,6 +707,9 @@
     <string name="card_timing_subtitle">How long cards stay and when the island idles</string>
     <string name="detail_title_timing">Timing</string>
     <string name="timing_intro">Fine-tune how long things stay on the island. Changes apply straight away and the defaults match the old fixed values.</string>
+    <string name="timing_presets_label">Pace</string>
+    <string name="timing_advanced_title">Individual timers</string>
+    <string name="timing_advanced_summary">Fine-tune each timer; the pace presets above set all of them at once.</string>
     <string name="timing_idle_label">Idle timeout</string>
     <string name="timing_never">Never</string>
     <string name="timing_idle_hint">How long cards stay before the island returns to its idle cutout: ordinary notifications, and live events (music, navigation, timers ...) that appeared by themselves. Live events you open with a tap on the idle cutout stay until you close them. Calls never time out. Slide to the end for Never: cards stay until they are dismissed.</string>
@@ -824,6 +832,8 @@
     <string name="idle_widgets_title">Idle widgets</string>
     <string name="idle_widgets_desc">Show a small live readout in the collapsed cutout while no event is on the island. Several widgets take turns.</string>
     <string name="idle_widgets_enable">Show idle widgets</string>
+    <string name="idle_styling_title">Units &amp; tick style</string>
+    <string name="idle_styling_desc">Weather units and the LED-footsteps tick look</string>
     <string name="idle_widget_clock_title">Hour tick</string>
     <string name="idle_widget_clock_desc">No clock (the status bar has one). On every full hour the hour and the minutes tick over on the cutout, whatever it shows, 12 or 24 hour like the system.</string>
     <string name="cal_cfg_title">Calendar: next event</string>

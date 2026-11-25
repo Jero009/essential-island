@@ -348,9 +348,10 @@ fun SmartIslandHomeScreen(
     val searchIndex = remember(context, configuration) {
         buildSettingsSearchIndex { id -> context.getString(id) }
     }
-    val searchResults = remember(searchIndex, searchQuery) {
-        val byId = searchIndex.associateBy { it.item.id }
-        SettingsSearch.search(searchIndex.map { it.item }, searchQuery).mapNotNull { byId[it.id] }
+    val searchResults = remember(searchIndex, searchQuery, settings.developerModeEnabled) {
+        val visible = if (settings.developerModeEnabled) searchIndex else searchIndex.filter { !it.item.id.startsWith("dev.") }
+        val byId = visible.associateBy { it.item.id }
+        SettingsSearch.search(visible.map { it.item }, searchQuery).mapNotNull { byId[it.id] }
     }
     // A jump stays armed for a few seconds, then is forgotten so the row never flashes again
     // when the user later opens the same screen by hand.
@@ -948,14 +949,17 @@ private fun SettingsOverviewSection(
                 onClick = { onNavigateTo(FeatureDetailSection.SupportCommunity) }
             )
 
-            FeatureStudioNavigationCard(
-                title = stringResource(R.string.card_developer_options_title),
-                subtitle = "Diagnostics, log recording & developer options",
-                icon = Icons.Rounded.Code,
-                statusText = if (settings.recordLogs) "Recording" else null,
-                statusColor = MaterialTheme.colorScheme.primary,
-                onClick = { onNavigateTo(FeatureDetailSection.DeveloperOptions) }
-            )
+            // Developer options hide behind seven taps on the version (About) — Android convention.
+            if (settings.developerModeEnabled) {
+                FeatureStudioNavigationCard(
+                    title = stringResource(R.string.card_developer_options_title),
+                    subtitle = "Diagnostics, log recording & developer options",
+                    icon = Icons.Rounded.Code,
+                    statusText = if (settings.recordLogs) "Recording" else null,
+                    statusColor = MaterialTheme.colorScheme.primary,
+                    onClick = { onNavigateTo(FeatureDetailSection.DeveloperOptions) }
+                )
+            }
 
             FeatureStudioNavigationCard(
                 title = stringResource(R.string.card_about_title),

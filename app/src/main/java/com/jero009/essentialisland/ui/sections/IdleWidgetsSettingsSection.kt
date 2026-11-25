@@ -81,6 +81,7 @@ import com.jero009.essentialisland.model.IdleSlots
 import com.jero009.essentialisland.model.IdleWidgetKind
 import com.jero009.essentialisland.model.IdleWidgetOff
 import com.jero009.essentialisland.model.IdleWidgets
+import com.jero009.essentialisland.ui.components.CollapsibleCard
 import com.jero009.essentialisland.ui.search.searchAnchor
 import kotlinx.coroutines.launch
 
@@ -341,11 +342,18 @@ fun IdleWidgetsSettingsSection(
             }
         }
 
-        IdleUnitsCard(settings = settings, repository = repository)
-
         // Weather, Calendar and Network speed settings live on their own pages, opened from the gear on the widget's row in the list above.
 
-        LedTickSettingsCard(settings = settings, repository = repository)
+        CollapsibleCard(
+            title = stringResource(R.string.idle_styling_title),
+            stateKey = "idle_styling",
+            summary = stringResource(R.string.idle_styling_desc),
+            framed = false,
+            searchKeyPrefix = "idle.units"
+        ) {
+            IdleUnitsCard(settings = settings, repository = repository)
+            LedTickSettingsCard(settings = settings, repository = repository)
+        }
     }
 
     if (showSelector) {

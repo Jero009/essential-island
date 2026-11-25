@@ -77,6 +77,7 @@ import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.data.SmartIslandSettingsRepository
 import com.jero009.essentialisland.ui.SliderSettingItem
 import com.jero009.essentialisland.ui.bounceClick
+import com.jero009.essentialisland.ui.components.CollapsibleCard
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import androidx.compose.runtime.getValue
@@ -302,24 +303,6 @@ fun CustomizationsSection(
                     letterSpacing = 0.8.sp
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = stringResource(R.string.expanded_theme_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(R.string.expanded_theme_desc),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    ExpandedThemeSelector(
-                        selected = settings.expandedTheme,
-                        onSelected = { scope.launch { repository.setExpandedTheme(it) } }
-                    )
-                }
-
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 2.dp))
 
                 // Background blur: Off or Card blur. The strength slider applies to Card blur; the media card keeps its own blur below.
@@ -354,54 +337,52 @@ fun CustomizationsSection(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
 
-                // The media (music) card has its own blur and opacity.
-                Text(
-                    text = stringResource(R.string.media_look_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = stringResource(R.string.media_look_desc),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                SliderSettingItem(
-                    label = stringResource(R.string.slider_media_opacity),
-                    value = localMediaOpacity * 100f,
-                    range = (SmartIslandSettings.MIN_OPACITY * 100f)..(SmartIslandSettings.MAX_OPACITY * 100f),
-                    suffix = "%",
-                    step = 5f,
-                    onValueChange = { localMediaOpacity = (it / 100f).coerceIn(SmartIslandSettings.MIN_OPACITY, SmartIslandSettings.MAX_OPACITY) },
-                    onValueChangeFinished = { scope.launch { repository.setMediaOpacity(localMediaOpacity) } }
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // The media (music) card has its own blur and opacity; folded away unless you want to diverge it
+                // from the card style above (it starts from those values).
+                CollapsibleCard(
+                    title = stringResource(R.string.media_look_title),
+                    stateKey = "color_media",
+                    summary = stringResource(R.string.media_look_desc),
+                    framed = false,
+                    searchKeyPrefix = "color.media"
                 ) {
-                    Text(
-                        text = stringResource(R.string.toggle_media_blur_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = settings.mediaBlurEnabled,
-                        onCheckedChange = { checked -> scope.launch { repository.setMediaBlurEnabled(checked) } }
-                    )
-                }
-                AnimatedVisibility(visible = settings.mediaBlurEnabled) {
                     SliderSettingItem(
-                        label = stringResource(R.string.slider_media_blur_radius),
-                        value = localMediaBlurRadius,
-                        range = SmartIslandSettings.MIN_EXPANDED_BLUR..SmartIslandSettings.MAX_EXPANDED_BLUR,
-                        suffix = " dp",
-                        step = 2f,
-                        onValueChange = { localMediaBlurRadius = it },
-                        onValueChangeFinished = { scope.launch { repository.setMediaBlurRadius(localMediaBlurRadius) } }
+                        label = stringResource(R.string.slider_media_opacity),
+                        value = localMediaOpacity * 100f,
+                        range = (SmartIslandSettings.MIN_OPACITY * 100f)..(SmartIslandSettings.MAX_OPACITY * 100f),
+                        suffix = "%",
+                        step = 5f,
+                        onValueChange = { localMediaOpacity = (it / 100f).coerceIn(SmartIslandSettings.MIN_OPACITY, SmartIslandSettings.MAX_OPACITY) },
+                        onValueChangeFinished = { scope.launch { repository.setMediaOpacity(localMediaOpacity) } }
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.toggle_media_blur_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(
+                            checked = settings.mediaBlurEnabled,
+                            onCheckedChange = { checked -> scope.launch { repository.setMediaBlurEnabled(checked) } }
+                        )
+                    }
+                    AnimatedVisibility(visible = settings.mediaBlurEnabled) {
+                        SliderSettingItem(
+                            label = stringResource(R.string.slider_media_blur_radius),
+                            value = localMediaBlurRadius,
+                            range = SmartIslandSettings.MIN_EXPANDED_BLUR..SmartIslandSettings.MAX_EXPANDED_BLUR,
+                            suffix = " dp",
+                            step = 2f,
+                            onValueChange = { localMediaBlurRadius = it },
+                            onValueChangeFinished = { scope.launch { repository.setMediaBlurRadius(localMediaBlurRadius) } }
+                        )
+                    }
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
@@ -468,79 +449,65 @@ fun CustomizationsSection(
             }
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        // The thirteen per-card colours. The semantic palette (accent + green/red + grey) is the default look,
+        // so this only unfolds when someone really wants to recolour a specific card.
+        CollapsibleCard(
+            title = stringResource(R.string.card_color_studio_title),
+            stateKey = "color_cards",
+            summary = stringResource(R.string.per_card_colors_desc),
+            icon = Icons.Rounded.Palette,
+            searchKeyPrefix = "color.cards"
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.card_color_studio_title).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 0.8.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                featureConfigs.forEachIndexed { index, config ->
+            featureConfigs.forEachIndexed { index, config ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(config.color).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(config.color).copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = config.icon,
-                                    contentDescription = null,
-                                    tint = Color(config.color),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            Text(
-                                text = stringResource(config.titleRes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                            Icon(
+                                imageVector = config.icon,
+                                contentDescription = null,
+                                tint = Color(config.color),
+                                modifier = Modifier.size(16.dp)
                             )
                         }
-
-                        ColorPresetRow(
-                            selectedColor = config.color,
-                            swatches = PRESET_COLORS,
-                            onColorSelected = { newColor -> scope.launch { config.onColorChange(newColor) } },
-                            onCustomClicked = {
-                                currentColorTarget = config.id
-                                colorPickerTitle = context.getString(config.titleRes)
-                                initialColor = config.color
-                                showDialog = true
-                            }
+                        Text(
+                            text = stringResource(config.titleRes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    if (index < featureConfigs.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
-                    }
+                    ColorPresetRow(
+                        selectedColor = config.color,
+                        swatches = PRESET_COLORS,
+                        onColorSelected = { newColor -> scope.launch { config.onColorChange(newColor) } },
+                        onCustomClicked = {
+                            currentColorTarget = config.id
+                            colorPickerTitle = context.getString(config.titleRes)
+                            initialColor = config.color
+                            showDialog = true
+                        }
+                    )
+                }
+
+                if (index < featureConfigs.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f))
                 }
             }
         }
@@ -796,43 +763,6 @@ internal fun RgbColorPickerDialog(
             }
         }
     )
-}
-
-@Composable
-private fun ExpandedThemeSelector(selected: String, onSelected: (String) -> Unit) {
-    val options = listOf(
-        SmartIslandSettings.EXPANDED_THEME_DARK to stringResource(R.string.expanded_theme_dark),
-        SmartIslandSettings.EXPANDED_THEME_LIGHT to stringResource(R.string.expanded_theme_light),
-        SmartIslandSettings.EXPANDED_THEME_SYSTEM to stringResource(R.string.expanded_theme_system)
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        options.forEach { (id, label) ->
-            val isSelected = selected == id
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
-                    .clickable { onSelected(id) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }
 
 @Composable

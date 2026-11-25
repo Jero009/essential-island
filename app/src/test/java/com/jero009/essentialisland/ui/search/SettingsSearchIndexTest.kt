@@ -70,7 +70,7 @@ class SettingsSearchIndexTest {
 
     @Test
     fun rowKeysUseTheKnownPrefixes() {
-        val known = listOf("event.", "np.", "timing.", "layout.", "gestures.", "idle.")
+        val known = listOf("event.", "np.", "timing.", "layout.", "gestures.", "idle.", "color.")
         index.mapNotNull { it.rowKey }.forEach { key ->
             assertTrue("unexpected row key $key", known.any { key.startsWith(it) })
         }

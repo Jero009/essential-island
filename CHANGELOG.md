@@ -4,6 +4,25 @@ All notable changes to Smart Island should be documented in this file.
 
 The format is inspired by Keep a Changelog, and this project uses the GNU General Public License v3.0.
 
+## [1.16.0] - 2026-11-25
+
+### Changed
+- **The elapsed-time label follows the thumb while you drag the music seek bar** (pattern credited to [MissingCore/Music](https://github.com/MissingCore/Music) in NOTICE.md — see "Design inspiration"). Previously the bar's thumb moved with the finger while the label kept ticking the live playback position; now the label previews the dragged position and returns to the live position when the drag ends (or is cancelled). Streams without a length never preview — the bar cannot seek there.
+- **Long track titles scroll instead of truncating** on the expanded music card (marquee; same inspiration credit). The scroll only runs while the card is shown and the system's "Remove animations" (animator duration scale) is not 0 — with animations off the title stays a static ellipsized line, as before.
+
+### Settings declutter (same release)
+- **One theme instead of two.** The separate "Expanded island theme" picker is gone; the expanded card now follows the app's Light/Dark/System setting. The stored setting keeps restoring from old backups, it is just no longer asked twice.
+- **Accent picker trimmed.** The Settings tab shows a curated eight-swatch row (Nothing hues first) plus the custom hue slider; the 22-swatch wall is gone.
+- **Color Studio folds the deep styling.** The thirteen per-card colour rows and the media-card look live in collapsed cards; blur strength and gradient details only appear when their feature is on.
+- **Notifications & Privacy regrouped.** The OEM device-profile card folds away (auto-detect stays default), and "Network access & release checks" plus "Detect transfers by network speed" moved out of the Lock Screen card into their own collapsed "Network & data" card — neither was a lock-screen rule. "Live events in foreground apps" moved to Display & Interaction Rules where it belongs.
+- **Timing presets.** Snappy / Normal / Relaxed set all five timers at once; the individual sliders folded under "Individual timers".
+- **Idle widgets styling folded.** Weather units and the LED-tick style live under one collapsed "Units & tick style" header.
+- **Developer options unlock like on Android.** The Developer Options & Logs entry left the always-visible SYSTEM group; tap the version on the About page seven times to unlock it (existing installs that had it saved stay unlocked). Its search entry is hidden while locked. The unused Landscape Lab screen was deleted.
+
+### Tests
+- `MediaSeekPreviewTest`: no-drag → no preview, unknown-length streams never preview, fraction→ms mapping, clamping of out-of-range fractions.
+- `TimingPresetsTest`: Normal matches the shipped defaults, every preset value sits inside its slider range, hand-tuned timings match no preset, presets are distinct.
+
 ## [1.11.3] - 2026-11-23
 
 ### Fixed

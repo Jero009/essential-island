@@ -49,32 +49,19 @@ import com.jero009.essentialisland.ui.glass.Switch
 // Settings > Appearance: the liquid glass switch, Material You, and the Material colour picker for the app's accent.
 
 private val MaterialAccentSwatches = listOf(
-    // Nothing OS-style swatches first: the canonical yellow plus the hues Nothing's own picker offers.
+    // Curated row for the Settings tab: the Nothing hues first, then the everyday accents. Anything else is one
+    // drag away on the custom hue slider below.
     0xFFFFC700L to "Nothing Yellow",
     0xFF54AEEAL to "Nothing Blue",
     0xFF93A4EBL to "Nothing Lavender",
     0xFFEA8BAAL to "Nothing Pink",
     0xFFF44336L to "Red",
-    0xFFE91E63L to "Pink",
-    0xFF9C27B0L to "Purple",
-    0xFF673AB7L to "Deep purple",
-    0xFF3F51B5L to "Indigo",
-    0xFF2196F3L to "Blue",
-    0xFF03A9F4L to "Light blue",
-    0xFF00BCD4L to "Cyan",
     0xFF009688L to "Teal",
     0xFF4CAF50L to "Green",
-    0xFF8BC34AL to "Light green",
-    0xFFCDDC39L to "Lime",
-    0xFFFFC107L to "Amber",
-    0xFFFF9800L to "Orange",
-    0xFFFF5722L to "Deep orange",
-    0xFF795548L to "Brown",
-    0xFF607D8BL to "Blue grey",
     0xFF4A8CFFL to "Azure"
 )
 
-private const val SWATCHES_PER_ROW = 6
+private const val SWATCHES_PER_ROW = 8
 
 private fun Long.toComposeColor(): Color = Color(this.toInt())
 

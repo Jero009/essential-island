@@ -48,7 +48,8 @@ class SmartIslandSettingsTest {
         assertEquals(emptySet<String>(), settings.notificationCooldownExcludedPackages)
         assertEquals(false, settings.enableNotificationHistory)
         assertEquals(72, settings.notificationHistoryRetentionHours)
-        assertEquals(true, settings.developerModeEnabled)
+        // Developer options now hide behind the About version tap; fresh installs start locked.
+        assertEquals(false, settings.developerModeEnabled)
         assertEquals(false, settings.recordLogs)
         assertEquals(false, settings.enableNotchMode)
         assertEquals(true, settings.enableSwipeActions)

@@ -220,7 +220,7 @@ internal fun buildSettingsSearchIndex(str: (Int) -> String): List<SettingsSearch
         listOf("internet", "online", "vpn location", "network checks", "release")
     )
     npToggle(
-        "transfer_speed", R.string.toggle_transfer_speed_title, R.string.toggle_transfer_speed_desc,
+        "network_transfer_speed", R.string.toggle_transfer_speed_title, R.string.toggle_transfer_speed_desc,
         listOf("download", "upload", "traffic", "estimate", "speed")
     )
     npToggle(
@@ -267,7 +267,8 @@ internal fun buildSettingsSearchIndex(str: (Int) -> String): List<SettingsSearch
     )
     add(
         "np.oem_rules", str(R.string.oem_rules_title), np, notifScreen, Icons.Rounded.Notifications, "",
-        listOf("xiaomi", "samsung", "oneplus", "huawei", "autostart", "background", "device", "oem", "battery manager")
+        listOf("xiaomi", "samsung", "oneplus", "huawei", "autostart", "background", "device", "oem", "battery manager"),
+        rowKey = "np.oem_rules"
     )
 
     val idle = detail(FeatureDetailSection.IdleWidgets)
@@ -381,11 +382,8 @@ internal fun buildSettingsSearchIndex(str: (Int) -> String): List<SettingsSearch
     )
     add(
         "color.media_look", str(R.string.media_look_title), color, colorScreen, Icons.Rounded.Palette,
-        str(R.string.media_look_desc), listOf("media", "music", "player", "blur", "opacity", "artwork", "album")
-    )
-    add(
-        "color.expanded_theme", str(R.string.expanded_theme_title), color, colorScreen, Icons.Rounded.Palette,
-        str(R.string.expanded_theme_desc), listOf("light", "dark", "system", "theme", "mode", "expanded", "card", "white")
+        str(R.string.media_look_desc), listOf("media", "music", "player", "blur", "opacity", "artwork", "album"),
+        rowKey = "color.media_look"
     )
     add(
         "color.gradient", str(R.string.toggle_expanded_gradient_title), color, colorScreen, Icons.Rounded.Palette,

@@ -103,7 +103,7 @@ data class SmartIslandSettings(
     val notificationCooldownExcludedPackages: Set<String> = emptySet(),
     /** Ids of system events (battery, Wi-Fi, VPN, Bluetooth, flashlight) whose pop-ups the anti-spam cooldown may hold back. */
     val notificationCooldownSystemEvents: Set<String> = emptySet(),
-    val developerModeEnabled: Boolean = true,
+    val developerModeEnabled: Boolean = false,
     val recordLogs: Boolean = false,
     /** What starts the Face ID unlock animation's tick: "face_only" (the system's face-unlock success) or "any" (any unlock). */
     val faceUnlockMode: String = "face_only",

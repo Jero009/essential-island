@@ -62,9 +62,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +101,19 @@ fun AboutSection(
     val context = LocalContext.current
     val currentVersion = remember(context) { getAppVersion(context) }
     var repoStats by remember { mutableStateOf<GitHubRepoStats?>(null) }
+    val scope = rememberCoroutineScope()
+    // The Android convention: developer options hide behind seven taps on the version.
+    var devTaps by rememberSaveable { mutableIntStateOf(0) }
+
+    fun onVersionTapped() {
+        if (settings.developerModeEnabled) return
+        devTaps += 1
+        if (devTaps >= 7) {
+            devTaps = 0
+            Toast.makeText(context, context.getString(R.string.dev_unlocked_toast), Toast.LENGTH_SHORT).show()
+            repository?.let { repo -> scope.launch { repo.setDeveloperModeEnabled(true) } }
+        }
+    }
 
     LaunchedEffect(settings.allowNetworkChecks) {
         if (!settings.allowNetworkChecks) return@LaunchedEffect
@@ -127,8 +142,16 @@ fun AboutSection(
                     Text(
                         text = "Version $currentVersion",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { onVersionTapped() }
                     )
+                    if (!settings.developerModeEnabled) {
+                        Text(
+                            text = stringResource(R.string.dev_unlock_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 FlowRow(

@@ -60,6 +60,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import com.jero009.essentialisland.ui.SliderSettingItem
 import com.jero009.essentialisland.ui.bounceClick
+import com.jero009.essentialisland.ui.components.CollapsibleCard
 import kotlin.math.roundToInt
 import com.jero009.essentialisland.ui.glass.Card
 import androidx.compose.material3.CardDefaults
@@ -138,57 +139,14 @@ fun NotificationsAndPrivacySection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        // OEM rule presets: auto-detect covers almost everyone, so this folds away.
+        CollapsibleCard(
+            title = stringResource(R.string.oem_rules_title),
+            stateKey = "np_oem_rules",
+            summary = stringResource(R.string.oem_rules_desc),
+            icon = Icons.Rounded.Smartphone,
+            searchKeyPrefix = "np.oem_rules"
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Smartphone,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.oem_rules_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.oem_rules_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-
                 ExposedDropdownMenuBox(
                     expanded = isDeviceMenuExpanded,
                     onExpandedChange = { isDeviceMenuExpanded = it },
@@ -278,7 +236,6 @@ fun NotificationsAndPrivacySection(
                         )
                     }
                 }
-            }
         }
 
         Card(
@@ -439,20 +396,18 @@ fun NotificationsAndPrivacySection(
                         LockScreenEventList(settings = settings, repository = repository)
                     }
                 }
+            }
+        }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
-                ToggleRowItem(
-                    searchKey = "np.live_events_foreground",
-                    title = stringResource(R.string.toggle_live_events_foreground_title),
-                    subtitle = stringResource(R.string.toggle_live_events_foreground_desc),
-                    icon = Icons.Rounded.OpenInFull,
-                    checked = settings.showLiveEventsInForeground,
-                    onCheckedChange = { scope.launch { repository.setShowLiveEventsInForeground(it) } }
-                )
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-
+        // Network access and the transfer detector are privacy/offline choices, not lock-screen rules;
+        // they fold away so the privacy settings stay the headline.
+        CollapsibleCard(
+            title = stringResource(R.string.network_data_title),
+            stateKey = "np_network",
+            summary = stringResource(R.string.network_data_desc),
+            icon = Icons.Rounded.Public,
+            searchKeyPrefix = "np.network"
+        ) {
                 ToggleRowItem(
                     searchKey = "np.network_access",
                     title = stringResource(R.string.toggle_network_access_title),
@@ -465,14 +420,13 @@ fun NotificationsAndPrivacySection(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 
                 ToggleRowItem(
-                    searchKey = "np.transfer_speed",
+                    searchKey = "np.network_transfer_speed",
                     title = stringResource(R.string.toggle_transfer_speed_title),
                     subtitle = stringResource(R.string.toggle_transfer_speed_desc),
                     icon = Icons.Rounded.Speed,
                     checked = settings.detectTransfersBySpeed,
                     onCheckedChange = { scope.launch { repository.setDetectTransfersBySpeed(it) } }
                 )
-            }
         }
 
         Card(
@@ -539,6 +493,16 @@ fun NotificationsAndPrivacySection(
                     icon = Icons.Rounded.TouchApp,
                     checked = settings.showNotificationActions,
                     onCheckedChange = { scope.launch { repository.setShowNotificationActions(it) } }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                ToggleRowItem(
+                    searchKey = "np.live_events_foreground",
+                    title = stringResource(R.string.toggle_live_events_foreground_title),
+                    subtitle = stringResource(R.string.toggle_live_events_foreground_desc),
+                    icon = Icons.Rounded.OpenInFull,
+                    checked = settings.showLiveEventsInForeground,
+                    onCheckedChange = { scope.launch { repository.setShowLiveEventsInForeground(it) } }
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 

@@ -106,10 +106,10 @@ fun rememberSystemDark(): Boolean {
     return SystemNight.isNight ?: fromConfiguration
 }
 
-/** The palette for the current setting; follows the phone live when the setting is "system". */
+/** The palette for the current setting; the expanded card follows the APP theme and the phone live when it is "system". */
 @Composable
 fun rememberIslandPalette(settings: SmartIslandSettings): IslandPalette {
     val systemDark = rememberSystemDark()
-    val light = ExpandedThemeRules.isLight(settings.expandedTheme, systemDark)
+    val light = ExpandedThemeRules.isLight(settings.themeMode, systemDark)
     return remember(light) { IslandPalette.of(light) }
 }
