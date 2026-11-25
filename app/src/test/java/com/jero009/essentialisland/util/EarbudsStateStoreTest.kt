@@ -73,6 +73,18 @@ class EarbudsStateStoreTest {
         assertEquals(EarbudsStateStore.Snapshot(7, 5, false), EarbudsStateStore.snapshot("Nothing Ear"))
     }
 
+    /** The remembered MAC address is what lets reads bypass the broken Android-17 device lookups. */
+    @Test
+    fun deviceAddressIsRememberedAndIsolatedPerDevice() {
+        EarbudsStateStore.rememberDeviceAddress("Nothing Headphone (a)", "2C:BE:EE:72:E4:AA")
+        assertEquals("2C:BE:EE:72:E4:AA", EarbudsStateStore.addressOf("Nothing Headphone (a)"))
+        assertNull(EarbudsStateStore.addressOf("CMF Buds 2"))
+
+        // A blank address is not remembered (it would break getRemoteDevice).
+        EarbudsStateStore.rememberDeviceAddress("CMF Buds 2", "")
+        assertNull(EarbudsStateStore.addressOf("CMF Buds 2"))
+    }
+
     /**
      * THE REGRESSION GUARD: a read landing mid-session on a store that was cold at composition must
      * leave the session layout untouched (the rows would grow the card under the expanded shell and

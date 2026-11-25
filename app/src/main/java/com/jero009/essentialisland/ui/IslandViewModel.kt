@@ -196,7 +196,13 @@ class IslandViewModel(
     val idleClosing = MutableStateFlow(false)
 
     private fun putAwayIdleCards() {
-        val tokens = visibleNotifications.value.map { it.awayToken() }
+        // The Bluetooth connection card ("system_bluetooth") is a state card, not idle content: while the
+        // device is connected the monitor keeps it in the repository and refreshed, and a put-away here
+        // would hide it while it stays live — reading as "the card disappears / tapping does nothing"
+        // (the v1.12.2 FroggerPro report). It leaves only via the monitor's disconnect removal.
+        val tokens = visibleNotifications.value
+            .filterNot { it.key == CONNECTION_CARD_KEY }
+            .map { it.awayToken() }
         if (tokens.isNotEmpty()) idleHidden.update { it + tokens }
     }
 
@@ -1522,12 +1528,15 @@ class IslandViewModel(
          * (Wi-Fi, VPN, USB, wired headphones — other keys, same mode) still time out like before.
          */
         internal fun liveMayTimeOut(n: IslandNotification, isLandscape: Boolean): Boolean =
-            n.key != "system_bluetooth" &&
+            n.key != CONNECTION_CARD_KEY &&
                 !IslandPriority.canIdleOut(n) && n.mode != IslandMode.IncomingCall &&
                 // Navigation stays until the trip ends or the user puts it away; it never times out by itself.
                 n.mode != IslandMode.Navigation &&
                 // Portrait: a live activity stays until it ends or the user puts it away (tap on the idle cutout).
                 !(n.mode == IslandMode.LiveActivity && !isLandscape)
+
+        /** The Bluetooth connection card's repository key — a state card, exempt from idle put-aways. */
+        const val CONNECTION_CARD_KEY = "system_bluetooth"
 
         private const val AUTO_COLLAPSE_DELAY_MS = 5000L
         private const val OUTSIDE_CLOSE_DELAY_MS = 800L

@@ -243,8 +243,10 @@ class BluetoothConnectionMonitor(
         // Pre-warm the earbuds state (ANC mode, EQ preset, in-ear) so the expanded card composes at its
         // final height from the first frame — a read landing after the card is shown grows the measured
         // height under the expanded shell and freezes the expand morph. Once per device per process;
-        // the expanded card re-reads on open.
+        // the expanded card re-reads on open. The MAC address is remembered because BluetoothManager's
+        // connected-device lookups return nothing on Android 17 / Nothing OS.
         if (NothingAnc.isSupportedDevice(name) && !EarbudsStateStore.hasBeenAttempted(name)) {
+            EarbudsStateStore.rememberDeviceAddress(name, address)
             scope.launch { EarbudsStateStore.refreshFromDevice(context, name) }
         }
     }

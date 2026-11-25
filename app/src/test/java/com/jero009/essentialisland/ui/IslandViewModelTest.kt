@@ -1812,12 +1812,41 @@ class IslandViewModelTest {
     }
 
     /**
-     * THE v1.12.1 REGRESSION GUARD: the Bluetooth connection card is a state card — while the device is
-     * connected the card stays on the island, and the collapsed-pill idle timeout must never put it away
-     * (a put-away here reads as "tapping the pill does nothing": the card vanishes before it can be
-     * tapped, then the idle timeout hides it entirely — the FroggerPro report). Transient connectivity
-     * cards (Wi-Fi, VPN, USB, wired headphones) still time out, and the existing exemptions hold.
+     * THE FROGGERPRO v1.12.2 REPORT: tapping the idle dot put the connected-device card away (cards=1
+     * idleable=0 storedAway=true), so the island showed nothing to expand. The put-away must skip the
+     * state card — only transient cards go.
      */
+    @Test
+    fun idleDotPutAwayKeepsTheConnectedBluetoothCard() = runTest {
+        val settingsRepo = mockk<SmartIslandSettingsRepository>(relaxed = true)
+        val notifRepo = SmartIslandNotificationRepository()
+        val viewModel = IslandViewModel(settingsRepo, notifRepo)
+
+        notifRepo.postNotification(
+            IslandNotification(
+                key = "system_bluetooth", packageName = "com.android.bluetooth", appName = "Bluetooth",
+                title = "Nothing Headphone (a)", text = "Earbuds connected • 55%",
+                mode = IslandMode.Bluetooth, timeMillis = 0L
+            )
+        )
+        notifRepo.postNotification(
+            IslandNotification(
+                key = "chat", packageName = "com.chat", appName = "Chat", title = "Chat", text = "Hello",
+                mode = IslandMode.Notification, timeMillis = 0L
+            )
+        )
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(2, viewModel.visibleNotifications.value.size)
+
+        val action = viewModel.onIdleDotTapped()
+        assertEquals(com.jero009.essentialisland.model.IdleDotTap.PutAwayNow, action)
+        testDispatcher.scheduler.runCurrent()
+
+        val keys = viewModel.visibleNotifications.value.map { it.key }
+        assertTrue("the connected-device card must survive the idle-dot put-away", keys.contains("system_bluetooth"))
+        assertFalse("the transient card goes", keys.contains("chat"))
+    }
+
     @Test
     fun liveIdleTimeoutNeverSweepsTheConnectedBluetoothCard() {
         fun card(key: String, mode: IslandMode) = IslandNotification(

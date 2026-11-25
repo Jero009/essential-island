@@ -6,11 +6,15 @@
 
 package com.jero009.essentialisland.util
 
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
+
+/** Log tag for the earbuds state store. */
+private const val TAG = "EarbudsState"
 
 /**
  * Remembers the last-read earbuds state (ANC mode, EQ preset, in-ear switch) per device so the expanded
@@ -33,6 +37,17 @@ object EarbudsStateStore {
 
     private val attempted = java.util.Collections.synchronizedSet(HashSet<String>())
 
+    /** MAC address per device name, remembered by the connection monitor (BluetoothManager device
+     *  lookups return nothing on Android 17 / Nothing OS, so the address is the reliable way in). */
+    private val addresses = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /** Remembers [address] for [name] so reads can open the device directly. */
+    fun rememberDeviceAddress(name: String, address: String) {
+        if (address.isNotBlank()) addresses[name] = address
+    }
+
+    fun addressOf(name: String): String? = addresses[name]
+
     /** True once a read was attempted for [name] this process (answered or not) — pre-warm fires once. */
     fun hasBeenAttempted(name: String): Boolean = attempted.contains(name)
 
@@ -53,27 +68,55 @@ object EarbudsStateStore {
     /**
      * Runs [reader] (the blocking RFCOMM read) and stores the result. A read that does not answer
      * leaves the store untouched: a device that answered once keeps its state instead of losing it
-     * to a later failed read.
+     * to a later failed read. Every attempt and outcome is logged always-on — the ANC panel's
+     * visibility depends on this read, so a silent failure here is undiagnosable.
      */
     suspend fun refresh(name: String, reader: suspend () -> Snapshot?): Snapshot? {
         markAttempted(name)
         if (inFlight == name) return snapshot(name)
         inFlight = name
         try {
-            val read = reader() ?: return snapshot(name)
+            val read = reader()
+            if (read == null) {
+                AppLogRecorder.recordCritical("W", TAG, "earbuds state read failed: $name — keeping the previous state")
+                return snapshot(name)
+            }
             put(name, read)
+            AppLogRecorder.recordCritical(
+                "I", TAG,
+                "earbuds state read: $name — anc=${read.ancMode} eq=${read.eqPreset} inEar=${read.inEarOn}"
+            )
             return read
         } finally {
             inFlight = null
         }
     }
 
-    /** The one-shot read of all three values over the vendor RFCOMM channel; null when nothing answered. */
+    /**
+     * The one-shot read of all three values over the vendor RFCOMM channel; null when nothing answered.
+     * The device is resolved by its remembered MAC address first — BluetoothManager's connected-device
+     * lookups return nothing on Android 17 / Nothing OS (the v1.11.5 finding), so the address — which the
+     * connection monitor remembered from the audio route — is the reliable way in.
+     */
     suspend fun readFromDevice(context: Context, name: String): Snapshot? = withContext(Dispatchers.IO) {
-        val device = NothingAnc.findConnectedDevice(context, name) ?: return@withContext null
+        val adapter = runCatching {
+            (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        }.getOrNull()
+        val device = addressOf(name)?.let { address ->
+            runCatching { adapter?.getRemoteDevice(address) }.getOrNull()
+        } ?: NothingAnc.findConnectedDevice(context, name) ?: run {
+            AppLogRecorder.recordCritical(
+                "W", TAG,
+                "earbuds read: no device resolved for $name (address=${addressOf(name) ?: "none"}, adapter=${if (adapter == null) "missing" else "present"})"
+            )
+            return@withContext null
+        }
         val client = NothingAncClient(device)
         try {
-            if (!client.connect()) return@withContext null
+            if (!client.connect()) {
+                AppLogRecorder.recordCritical("W", TAG, "earbuds read: RFCOMM connect failed for $name")
+                return@withContext null
+            }
             val cmf = NothingAnc.isCmfDevice(name)
             Snapshot(
                 ancMode = client.readAnc()?.let { NothingAnc.modeFromPayload(it, 0x401E) },
@@ -103,6 +146,7 @@ object EarbudsStateStore {
     internal fun resetForTest() {
         snapshots.value = emptyMap()
         attempted.clear()
+        addresses.clear()
         inFlight = null
     }
 }
