@@ -57,7 +57,12 @@ fun WavyMusicSeekBar(
     /** The shade's thumb: a short vertical rounded bar instead of a dot. */
     pillThumb: Boolean = false,
     pillThumbWidth: Dp = 5.dp,
-    pillThumbHeight: Dp = 18.dp
+    pillThumbHeight: Dp = 18.dp,
+    /**
+     * Drag feedback for callers that render derived UI (the elapsed-time label): invoked with
+     * the thumb's fraction while a drag is live, and with `null` when the drag ends or cancels.
+     */
+    onSeekPreview: ((Float?) -> Unit)? = null
 ) {
     // The wave settles into a straight line when playback is paused, like the shade's bar.
     val waveAmount by animateFloatAsState(
@@ -101,17 +106,21 @@ fun WavyMusicSeekBar(
                     onDragStart = { offset ->
                         isDragging = true
                         dragProgress = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
+                        onSeekPreview?.invoke(dragProgress)
                     },
                     onDrag = { change, _ ->
                         change.consume()
                         dragProgress = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
+                        onSeekPreview?.invoke(dragProgress)
                     },
                     onDragEnd = {
                         isDragging = false
                         onSeek(dragProgress)
+                        onSeekPreview?.invoke(null)
                     },
                     onDragCancel = {
                         isDragging = false
+                        onSeekPreview?.invoke(null)
                     }
                 )
             }

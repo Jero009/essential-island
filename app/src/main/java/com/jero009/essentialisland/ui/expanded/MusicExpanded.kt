@@ -9,6 +9,7 @@ package com.jero009.essentialisland.ui.expanded
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -45,12 +47,14 @@ import androidx.compose.ui.unit.sp
 import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.di.SmartIslandRepositories
 import com.jero009.essentialisland.model.IslandNotification
+import com.jero009.essentialisland.model.MediaSeekPreview
 import com.jero009.essentialisland.ui.LocalCardShown
 import com.jero009.essentialisland.ui.WavyMusicSeekBar
 import androidx.compose.ui.res.stringResource
 import com.jero009.essentialisland.R
 import kotlinx.coroutines.launch
 import com.jero009.essentialisland.util.MediaArt
+import com.jero009.essentialisland.util.SystemAnimScale
 import com.jero009.essentialisland.util.runCatchingLogged
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -93,6 +97,10 @@ fun MusicExpanded(
     }
 
     val lastSeekTimeMs = remember { longArrayOf(0L) }
+
+    // While the thumb is dragged, the elapsed label previews the thumb's position (the seek
+    // itself commits on release); NaN = no drag live.
+    var seekPreviewFraction by remember(notification?.key) { mutableFloatStateOf(Float.NaN) }
 
     var localIsPlaying by remember(notification?.key, notification?.mediaIsPlaying) {
         mutableStateOf(notification?.mediaIsPlaying == true)
@@ -273,6 +281,9 @@ fun MusicExpanded(
                 Column(Modifier.weight(1f)) {
                     Text(
                         notification?.title?.takeIf { it.isNotBlank() } ?: "Song",
+                        modifier = if (cardShown && !SystemAnimScale.animationsOff()) {
+                            Modifier.basicMarquee()
+                        } else Modifier,
                         color = palette.text,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -338,6 +349,7 @@ fun MusicExpanded(
                     WavyMusicSeekBar(
                         progress = progressNow,
                         isPlaying = localIsPlaying,
+                        onSeekPreview = { seekPreviewFraction = it ?: MediaSeekPreview.NONE },
                         onSeek = { newProgress ->
                             if (durationMs != null && durationMs > 0) {
                                 val newPosition = (newProgress * durationMs).toLong()
@@ -371,7 +383,10 @@ fun MusicExpanded(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MusicPositionText(livePosition)
+                            MusicPositionText(
+                                livePosition,
+                                MediaSeekPreview.elapsedMs(seekPreviewFraction, durationMs)
+                            )
                             Text(
                                 formatDuration(durationMs),
                                 color = palette.text.copy(alpha = 0.75f),
@@ -403,10 +418,14 @@ fun MusicExpanded(
 }
 
 @Composable
-private fun MusicPositionText(position: androidx.compose.runtime.LongState) {
+private fun MusicPositionText(
+    position: androidx.compose.runtime.LongState,
+    previewMs: Long? = null
+) {
     val seconds by remember(position) { derivedStateOf { position.longValue / 1000L } }
+    val shown = previewMs ?: (seconds * 1000L)
     Text(
-        formatDuration(seconds * 1000L),
+        formatDuration(shown),
         color = LocalIslandPalette.current.text.copy(alpha = 0.75f),
         fontSize = 10.sp,
         lineHeight = 12.sp
