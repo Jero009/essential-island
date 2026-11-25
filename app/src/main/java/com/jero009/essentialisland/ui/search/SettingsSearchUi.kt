@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,11 +29,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,12 +52,23 @@ internal fun SettingsSearchField(
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
+    // Measured OS 5 search bar: a stadium filled with the card surface — fill only, no outline.
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
         singleLine = true,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(50),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
         placeholder = { Text(stringResource(R.string.settings_search_hint)) },
         leadingIcon = {
             Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
@@ -103,23 +117,24 @@ private fun SearchResultRow(entry: SettingsSearchEntry, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
             .bounceClick(onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Settings icon grammar: neutral ink circle, ink glyph.
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = entry.icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(18.dp)
             )
         }

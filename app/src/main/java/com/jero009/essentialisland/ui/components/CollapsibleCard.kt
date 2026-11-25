@@ -8,7 +8,6 @@
 package com.jero009.essentialisland.ui.components
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -120,9 +120,9 @@ fun CollapsibleCard(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
-        shape = RoundedCornerShape(20.dp),
+        // Classic Nothing cards are borderless — separation comes from surface contrast alone.
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
@@ -137,7 +137,7 @@ fun CollapsibleCard(
                     Box(
                         modifier = Modifier
                             .size(38.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {

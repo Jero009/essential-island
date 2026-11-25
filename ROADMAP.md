@@ -17,6 +17,7 @@ Shipped so far:
 - EQ preset cycling and in-ear detection on the earbuds card (v1.11.0)
 - Glyph-aware handling: per-app Keep in system shade so Nothing Essential notifications keep their Glyph, with a Mirror Only hint
 - Recovery hardening after system process kills: a bound-but-windowless self-check re-adds the pill window with a bounded backoff, and the notification listener's reconnect nudges the accessibility rebind when the system skips it (v1.14.0)
+- App-UI Nothing OS 5 pass: measured card/chip/segment/search grammar (borderless 12dp cards, pill segments, ink-circle icon tiles, kicker labels, flat bottom nav), hardcoded dark segment colours made theme-aware so light mode stays readable (v1.15.0)
 
 Next candidates (in no committed order):
 

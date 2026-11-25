@@ -38,11 +38,13 @@ fun OrientationTabs(
     onSelected: (OrientationTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Measured OS 5 segment control: recessed tile container, the selected pill one grey step up
+    // (#141414 / #303030 dark), greyscale text — never coloured. Ink alphas keep both modes measured.
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF141414))
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -51,8 +53,8 @@ fun OrientationTabs(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) Color(0xFF303030) else Color.Transparent)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.19f) else Color.Transparent)
                     .clickable { onSelected(tab) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
@@ -60,7 +62,7 @@ fun OrientationTabs(
                 Text(
                     text = tab.label,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (isSelected) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )

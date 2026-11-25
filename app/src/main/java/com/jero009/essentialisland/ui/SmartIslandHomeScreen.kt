@@ -85,7 +85,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import com.jero009.essentialisland.ui.glass.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -617,10 +616,10 @@ fun SmartIslandHomeScreen(
 private const val MAX_CONTENT_WIDTH_DP = 640
 
 private fun contentSidePadding(screenWidthDp: Int): androidx.compose.ui.unit.Dp {
+    // Measured OS 5 page side margin: 14dp on phones; tablets centre wider content.
     val base = when {
-        screenWidthDp < 360 -> 14
         screenWidthDp > 600 -> 28
-        else -> 20
+        else -> 14
     }
     val centred = (screenWidthDp - MAX_CONTENT_WIDTH_DP) / 2
     return maxOf(base, centred).dp
@@ -687,9 +686,12 @@ private fun StudioTopHeader(
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                // OS 5 kicker: uppercase, small, wide tracking under the hero title.
                 Text(
-                    text = stringResource(R.string.app_subtitle),
+                    text = stringResource(R.string.app_subtitle).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.16.em,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -707,11 +709,12 @@ private fun StudioTopHeader(
             else -> stringResource(R.string.status_ready)
         }
 
+        // OS 5 chip: pill, transparent fill, one neutral hairline; the dot (and the text when
+        // setup is needed) is where the signal colour lives — never the border.
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(statusColor.copy(alpha = 0.12f))
-                .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(50))
+                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(50))
                 .clickable(onClick = onHealthClick)
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
@@ -725,10 +728,11 @@ private fun StudioTopHeader(
                         .background(statusColor, CircleShape)
                 )
                 Text(
-                    text = statusText,
+                    text = statusText.uppercase(),
                     color = statusColor,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.10.em
                 )
             }
         }
@@ -749,9 +753,9 @@ private fun MasterPowerCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
+        // Classic Nothing card: borderless, measured card radius.
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -830,11 +834,13 @@ private fun MasterPowerCard(
 @Composable
 private fun ThemeModeSelector(selected: String, onSelected: (String) -> Unit) {
     val options = listOf("system" to "System", "light" to "Light", "dark" to "Dark")
+    // Same measured OS 5 segment grammar as the orientation tabs: recessed tile container, the
+    // selected pill one grey step up, greyscale text — never coloured.
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -843,8 +849,8 @@ private fun ThemeModeSelector(selected: String, onSelected: (String) -> Unit) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.19f) else Color.Transparent)
                     .clickable { onSelected(id) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
@@ -852,7 +858,7 @@ private fun ThemeModeSelector(selected: String, onSelected: (String) -> Unit) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (isSelected) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -868,7 +874,7 @@ private fun SetupChip(label: String, granted: Boolean, onClick: () -> Unit) {
     val bg = if (granted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) else NothingRed.copy(alpha = 0.12f)
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(50))
             .background(bg)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -881,7 +887,13 @@ private fun SetupChip(label: String, granted: Boolean, onClick: () -> Unit) {
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
-        Text(text = label, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label.uppercase(),
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.10.em
+        )
     }
 }
 
@@ -910,7 +922,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_permissions_setup_title),
                 subtitle = "Accessibility, notification access, battery",
                 icon = Icons.Rounded.Shield,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 statusText = if (!canEnable) stringResource(R.string.status_action_required) else null,
                 statusColor = if (canEnable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateTo(FeatureDetailSection.PermissionsCenter) }
@@ -920,7 +931,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_backup_restore_title),
                 subtitle = "Export or import all settings",
                 icon = Icons.Rounded.SettingsBackupRestore,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.BackupRestore) }
             )
 
@@ -928,7 +938,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_updates_downloads_title),
                 subtitle = "Check GitHub releases and download updates",
                 icon = Icons.Rounded.Download,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.UpdatesAndDownloads) }
             )
 
@@ -936,7 +945,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_support_requests_title),
                 subtitle = "Report issues, feature requests & community",
                 icon = Icons.Rounded.People,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.SupportCommunity) }
             )
 
@@ -944,7 +952,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_developer_options_title),
                 subtitle = "Diagnostics, log recording & developer options",
                 icon = Icons.Rounded.Code,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 statusText = if (settings.recordLogs) "Recording" else null,
                 statusColor = MaterialTheme.colorScheme.primary,
                 onClick = { onNavigateTo(FeatureDetailSection.DeveloperOptions) }
@@ -954,7 +961,6 @@ private fun SettingsOverviewSection(
                 title = stringResource(R.string.card_about_title),
                 subtitle = stringResource(R.string.card_about_subtitle),
                 icon = Icons.Rounded.Info,
-                iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onNavigateTo(FeatureDetailSection.About) }
             )
         }
@@ -981,7 +987,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_color_studio_title),
                     subtitle = "Colours, opacity, gradients and card styles",
                     icon = Icons.Rounded.Palette,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = stringResource(R.string.card_color_studio_status, (settings.opacity * 100).toInt()),
                     onClick = { onNavigateTo(FeatureDetailSection.ColorStudio) }
                 )
@@ -1014,7 +1019,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_notification_history_title),
                     subtitle = "Browse notifications the island has shown",
                     icon = Icons.Rounded.History,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.enableNotificationHistory) stringResource(R.string.card_notification_history_status_active) else null,
                     statusColor = if (settings.enableNotificationHistory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.NotificationHistory) }
@@ -1024,7 +1028,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_app_shortcuts_title),
                     subtitle = "Launch favourite apps from the island",
                     icon = Icons.Rounded.Apps,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.enableAppShortcuts) {
                         stringResource(R.string.card_app_shortcuts_status, settings.shortcutPackages.size)
                     } else null,
@@ -1039,7 +1042,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_gestures_guide_title),
                     subtitle = "Swipes, taps, long press, sensitivity and vibration",
                     icon = Icons.Rounded.Gesture,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.GesturesGuide) }
                 )
 
@@ -1047,7 +1049,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.idle_widgets_title),
                     subtitle = stringResource(R.string.card_idle_widgets_subtitle),
                     icon = Icons.Rounded.Widgets,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     statusText = if (settings.idleWidgetsEnabled || settings.idleWidgetsEnabledLandscape) {
                         stringResource(R.string.status_active)
                     } else null,
@@ -1059,7 +1060,6 @@ private fun SettingsOverviewSection(
                     title = stringResource(R.string.card_timing_title),
                     subtitle = stringResource(R.string.card_timing_subtitle),
                     icon = Icons.Rounded.Timer,
-                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { onNavigateTo(FeatureDetailSection.Timing) }
                 )
             }
@@ -1076,11 +1076,11 @@ private fun SettingsCategoryGroup(
     content: @Composable () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        // Nothing OS section kicker: uppercase, small, mid-weight, wide tracking (+0.16em), mid ink.
+        // Nothing OS section kicker: uppercase, small, weight 400, wide tracking (+0.16em), mid ink.
         Text(
             text = title.uppercase(),
             style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.16.em),
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, top = 4.dp)
         )
@@ -1093,7 +1093,6 @@ private fun SettingsCategoryGroup(
 private fun FeatureStudioNavigationCard(
     title: String,
     icon: ImageVector,
-    iconColor: Color = MaterialTheme.colorScheme.primary,
     statusText: String? = null,
     statusColor: Color = MaterialTheme.colorScheme.primary,
     subtitle: String? = null,
@@ -1102,24 +1101,26 @@ private fun FeatureStudioNavigationCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .glassEdge(RoundedCornerShape(14.dp), glass = LocalLiquidGlass.current, dark = LocalGlassDark.current)
+            .glassEdge(RoundedCornerShape(12.dp), glass = LocalLiquidGlass.current, dark = LocalGlassDark.current)
             .bounceClick(onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Settings icon grammar (matches the cards): a neutral ink tile — 10% ink circle — carrying an
+        // ink glyph. Monochrome only; colour lives in the status text/dot, never in the icon.
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconColor),
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(19.dp)
             )
         }
@@ -1145,11 +1146,13 @@ private fun FeatureStudioNavigationCard(
         }
         if (statusText != null) {
             Spacer(modifier = Modifier.width(8.dp))
+            // Chip-style status: uppercase label text with the measured label tracking.
             Text(
-                text = statusText,
+                text = statusText.uppercase(),
                 color = statusColor,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
+                letterSpacing = 0.10.em,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1169,9 +1172,11 @@ private fun StudioBottomNavigationBar(
     selectedTab: StudioTab,
     onTabSelected: (StudioTab) -> Unit
 ) {
+    // Nothing OS navigation chrome: flat page-colour bar, no tonal band, no indicator pill —
+    // the selected item is simply full ink, the rest mid grey.
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp
+        containerColor = MaterialTheme.colorScheme.background,
+        tonalElevation = 0.dp
     ) {
         NavigationBarItem(
             selected = selectedTab == StudioTab.Studio,
@@ -1179,9 +1184,11 @@ private fun StudioBottomNavigationBar(
             icon = { Icon(Icons.Rounded.FlashOn, contentDescription = stringResource(R.string.tab_studio)) },
             label = { Text(stringResource(R.string.tab_studio), fontWeight = FontWeight.SemiBold) },
             colors = NavigationBarItemDefaults.colors(
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary
+                indicatorColor = Color.Transparent,
+                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         NavigationBarItem(
@@ -1190,9 +1197,11 @@ private fun StudioBottomNavigationBar(
             icon = { Icon(Icons.Rounded.Tune, contentDescription = stringResource(R.string.tab_position)) },
             label = { Text(stringResource(R.string.tab_position), fontWeight = FontWeight.SemiBold) },
             colors = NavigationBarItemDefaults.colors(
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary
+                indicatorColor = Color.Transparent,
+                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         NavigationBarItem(
@@ -1201,9 +1210,11 @@ private fun StudioBottomNavigationBar(
             icon = { Icon(Icons.Rounded.Science, contentDescription = stringResource(R.string.tab_demo)) },
             label = { Text(stringResource(R.string.tab_demo), fontWeight = FontWeight.SemiBold) },
             colors = NavigationBarItemDefaults.colors(
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary
+                indicatorColor = Color.Transparent,
+                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         NavigationBarItem(
@@ -1212,9 +1223,11 @@ private fun StudioBottomNavigationBar(
             icon = { Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.tab_settings)) },
             label = { Text(stringResource(R.string.tab_settings), fontWeight = FontWeight.SemiBold) },
             colors = NavigationBarItemDefaults.colors(
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary
+                indicatorColor = Color.Transparent,
+                selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
     }
@@ -1267,7 +1280,8 @@ private fun DetailScreenHost(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    // Measured circle icon buttons: a faint ink tile (#1C1C1C family), never a grey band.
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -1467,7 +1481,8 @@ private fun WelcomeDialog(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
-            shape = RoundedCornerShape(26.dp),
+            // Overlay surfaces use the solid fallback at the OS 5 large radius (28dp).
+            shape = RoundedCornerShape(28.dp),
             // Fully opaque: the glass theme makes `surface` translucent, which left this dialog hard to read.
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f)
@@ -1487,7 +1502,7 @@ private fun WelcomeDialog(
                         contentDescription = "Smart Island Logo",
                         modifier = Modifier
                             .size(68.dp)
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(20.dp))
                     )
                 } else {
                     Box(
@@ -1495,7 +1510,7 @@ private fun WelcomeDialog(
                             .size(68.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(18.dp)
+                                shape = RoundedCornerShape(20.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1521,16 +1536,20 @@ private fun WelcomeDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Button(
+                // Nothing button stack: ghost (hairline) for the secondary action, inversion pill
+                // for the confirm, plain text for the tertiary.
+                OutlinedButton(
                     onClick = {
                         runCatchingLogged("WelcomeDialog", "Failed to open GitHub link") {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Jero009/essential-island")))
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     )
                 ) {
                     Row(
@@ -1541,26 +1560,26 @@ private fun WelcomeDialog(
                             imageVector = Icons.Rounded.Star,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSecondary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             stringResource(R.string.star_on_github),
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondary
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
-                ElevatedButton(
+                Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.elevatedButtonColors(
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text(stringResource(R.string.btn_get_started), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.btn_get_started), fontWeight = FontWeight.SemiBold)
                 }
 
                 TextButton(onClick = onTakeTour, modifier = Modifier.fillMaxWidth()) {
