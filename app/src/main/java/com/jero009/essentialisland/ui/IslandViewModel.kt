@@ -438,7 +438,7 @@ class IslandViewModel(
         else list.filterNot { it.awayToken() in hidden }
         traceHidden(list, shown) { "idle-timeout-put-away" }
         applyPillHidden(shown, pillHidden).also { visible ->
-            traceHidden(shown, visible) { "pill-hidden(landscape or long press: only calls stay)" }
+            traceHidden(shown, visible) { "pill-hidden(long-press toggle: only calls stay)" }
         }
     }.stateIn(
         scope = viewModelScope,
@@ -747,6 +747,29 @@ class IslandViewModel(
     val appsLauncherOpen = MutableStateFlow(false)
 
     init {
+        // A long-press "TogglePill" hides the pill and everything waiting in the repository except calls.
+        // But the Bluetooth connection card is not content the user asked to silence — it reflects a
+        // device the user just physically connected — so its ARRIVAL (device appears; not battery-percentage
+        // updates, and no other event type) wakes the hidden pill. Without this, one accidental long-press
+        // bricks the island until the user long-presses again: every monitor tick re-posts the card and
+        // this gate suppresses it in the same millisecond ("pill-hidden ... only calls stay" — the
+        // v1.12.4 FroggerPro export), and the ANC panel never gets a chance to open either.
+        viewModelScope.launch {
+            runSuspendCatchingLogged(TAG, "Pill-hidden wake collector failed") {
+                notificationRepo.notifications
+                    .map { list -> list.any { it.key == CONNECTION_CARD_KEY } }
+                    .distinctUntilChanged()
+                    .collect { connected ->
+                        if (connected && _pillHidden.value) {
+                            com.jero009.essentialisland.util.AppLogRecorder.recordCritical(
+                                "I", TAG,
+                                "connection card arrived while the pill was hidden — pill woken"
+                            )
+                            setPillHidden(false)
+                        }
+                    }
+            }
+        }
         viewModelScope.launch {
             runSuspendCatchingLogged(TAG, "Notifications collector failed") {
                 var previousKeys: List<String> = emptyList()

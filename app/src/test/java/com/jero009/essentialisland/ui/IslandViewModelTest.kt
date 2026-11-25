@@ -1847,6 +1847,76 @@ class IslandViewModelTest {
         assertFalse("the transient card goes", keys.contains("chat"))
     }
 
+    /** v1.12.4 FroggerPro report: the pill-hidden gate suppressed every freshly shown connection card. */
+    @Test
+    fun connectionArrivalWakesTheHiddenPill() = runTest {
+        val settingsRepo = mockk<SmartIslandSettingsRepository>(relaxed = true)
+        val notifRepo = SmartIslandNotificationRepository()
+        val viewModel = IslandViewModel(settingsRepo, notifRepo)
+
+        viewModel.togglePillHidden()
+        assertTrue(viewModel.pillHidden.value)
+
+        notifRepo.postNotification(
+            IslandNotification(
+                key = "system_bluetooth", packageName = "com.android.bluetooth", appName = "Bluetooth",
+                title = "Nothing Headphone (a)", text = "Earbuds connected • 55%",
+                mode = IslandMode.Bluetooth, timeMillis = 0L
+            )
+        )
+        testDispatcher.scheduler.runCurrent()
+
+        assertFalse("a newly connected device must wake the hidden pill", viewModel.pillHidden.value)
+        assertTrue(
+            viewModel.visibleNotifications.value.any { it.key == "system_bluetooth" }
+        )
+    }
+
+    /** The wake is an arrival edge, not a content edge: battery-percentage updates must not re-wake. */
+    @Test
+    fun connectionUpdateDoesNotReawakenTheHiddenPill() = runTest {
+        val settingsRepo = mockk<SmartIslandSettingsRepository>(relaxed = true)
+        val notifRepo = SmartIslandNotificationRepository()
+        val viewModel = IslandViewModel(settingsRepo, notifRepo)
+
+        val card = IslandNotification(
+            key = "system_bluetooth", packageName = "com.android.bluetooth", appName = "Bluetooth",
+            title = "Nothing Headphone (a)", text = "Earbuds connected • 55%",
+            mode = IslandMode.Bluetooth, timeMillis = 0L
+        )
+        notifRepo.postNotification(card)
+        testDispatcher.scheduler.runCurrent() // arrival wakes (no-op: pill was awake)
+
+        viewModel.togglePillHidden() // the user hides again while the device stays connected
+        assertTrue(viewModel.pillHidden.value)
+
+        notifRepo.postNotification(card.copy(text = "Earbuds connected • 54%"))
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue("a battery-percentage update must not re-wake the pill", viewModel.pillHidden.value)
+    }
+
+    /** Other events keep waiting in the repository — the hide stays a do-not-disturb for them. */
+    @Test
+    fun otherEventsDoNotWakeTheHiddenPill() = runTest {
+        val settingsRepo = mockk<SmartIslandSettingsRepository>(relaxed = true)
+        val notifRepo = SmartIslandNotificationRepository()
+        val viewModel = IslandViewModel(settingsRepo, notifRepo)
+
+        viewModel.togglePillHidden()
+
+        notifRepo.postNotification(
+            IslandNotification(
+                key = "chat", packageName = "com.chat", appName = "Chat", title = "Chat", text = "Hello",
+                mode = IslandMode.Notification, timeMillis = 0L
+            )
+        )
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.pillHidden.value)
+        assertFalse(viewModel.visibleNotifications.value.any { it.key == "chat" })
+    }
+
     @Test
     fun liveIdleTimeoutNeverSweepsTheConnectedBluetoothCard() {
         fun card(key: String, mode: IslandMode) = IslandNotification(
