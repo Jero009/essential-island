@@ -101,6 +101,7 @@ import com.jero009.essentialisland.ui.glass.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import com.jero009.essentialisland.ui.components.CollapsibleCard
+import com.jero009.essentialisland.ui.components.NothingSegmented
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -835,37 +836,14 @@ private fun MasterPowerCard(
 @Composable
 private fun ThemeModeSelector(selected: String, onSelected: (String) -> Unit) {
     val options = listOf("system" to "System", "light" to "Light", "dark" to "Dark")
-    // Same measured OS 5 segment grammar as the orientation tabs: recessed tile container, the
-    // selected pill one grey step up, greyscale text — never coloured.
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        options.forEach { (id, label) ->
-            val isSelected = selected == id
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.19f) else Color.Transparent)
-                    .clickable { onSelected(id) }
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
+    // The shared Nothing OS 5 segment control: recessed container, greyscale inversion, and a
+    // selected pill that glides between the segments (~200 ms mechanical ease) instead of flipping.
+    NothingSegmented(
+        options = options.map { it.first },
+        selected = selected,
+        label = { id -> options.first { it.first == id }.second },
+        onSelected = onSelected
+    )
 }
 
 @Composable

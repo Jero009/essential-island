@@ -549,10 +549,10 @@ fun BluetoothExpanded(
                 )
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(50))
                         .background(LocalIslandPalette.current.tint(0.12f))
                         .clickable { cycleEq() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                        .padding(horizontal = 12.dp, vertical = 5.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -584,10 +584,10 @@ fun BluetoothExpanded(
                 )
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(50))
                         .background(if (inEarActive) LocalIslandPalette.current.text else LocalIslandPalette.current.tint(0.12f))
                         .clickable { toggleInEar() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                        .padding(horizontal = 12.dp, vertical = 5.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

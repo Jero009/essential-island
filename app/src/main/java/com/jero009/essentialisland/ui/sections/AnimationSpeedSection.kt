@@ -35,6 +35,7 @@ import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.data.SmartIslandSettingsRepository
 import com.jero009.essentialisland.util.AnimationSpeed
 import com.jero009.essentialisland.util.MergeStyle
+import com.jero009.essentialisland.ui.components.NothingSegmented
 import kotlinx.coroutines.launch
 
 /**
@@ -78,40 +79,18 @@ fun AnimationSpeedSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                options.forEach { (id, label) ->
-                    val isSelected = id == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable {
-                                scope.launch {
-                                    if (landscape) repository.setAnimSpeedLandscape(id)
-                                    else repository.setAnimSpeedPortrait(id)
-                                }
-                            }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Shared Nothing OS 5 segment control: greyscale inversion + a gliding selected pill.
+            NothingSegmented(
+                options = options.map { it.first },
+                selected = selected,
+                label = { id -> options.first { it.first == id }.second },
+                onSelected = { id ->
+                    scope.launch {
+                        if (landscape) repository.setAnimSpeedLandscape(id)
+                        else repository.setAnimSpeedPortrait(id)
                     }
                 }
-            }
+            )
         }
     }
 }
@@ -156,40 +135,18 @@ fun MergeStyleSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                options.forEach { (id, label) ->
-                    val isSelected = id == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable {
-                                scope.launch {
-                                    if (landscape) repository.setMergeStyleLandscape(id)
-                                    else repository.setMergeStyle(id)
-                                }
-                            }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // Shared Nothing OS 5 segment control: greyscale inversion + a gliding selected pill.
+            NothingSegmented(
+                options = options.map { it.first },
+                selected = selected,
+                label = { id -> options.first { it.first == id }.second },
+                onSelected = { id ->
+                    scope.launch {
+                        if (landscape) repository.setMergeStyleLandscape(id)
+                        else repository.setMergeStyle(id)
                     }
                 }
-            }
+            )
         }
     }
 }

@@ -8,6 +8,7 @@
 package com.jero009.essentialisland.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ColorScheme
@@ -231,6 +232,8 @@ fun SmartIslandTheme(
         typography = remember { geistTypography() }
     ) {
         CompositionLocalProvider(
+            // Nothing press feedback (scale + opacity, no ripple) for every default-indication clickable.
+            LocalIndication provides NothingPressIndication,
             LocalNothingAccent provides accent,
             LocalLiquidGlass provides liquidGlass,
             LocalGlassDark provides useDark,

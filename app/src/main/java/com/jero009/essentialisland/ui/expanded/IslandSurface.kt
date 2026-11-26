@@ -19,8 +19,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.jero009.essentialisland.data.SmartIslandSettings
 
-/** Corner radius of an expanded island (the overlay animates its single island to the same value). */
-internal val SPLIT_ISLAND_CORNER = 34.dp
+/** Corner radius of an expanded island (the overlay animates its single island to the same value). Nothing OS 5 lg = 28 dp. */
+internal val SPLIT_ISLAND_CORNER = 28.dp
 
 /** Landscape with the sibling picker open: gap between the active card island and the picker island. */
 internal val SPLIT_ISLAND_GAP = 14.dp

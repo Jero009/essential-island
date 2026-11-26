@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -188,6 +189,8 @@ fun OverlayIsland(
     val readerScrollTracker = remember { com.jero009.essentialisland.util.ReaderScrollTracker() }
     val stepDragState = remember { com.jero009.essentialisland.ui.expanded.StepDragState() }
     androidx.compose.runtime.CompositionLocalProvider(
+        // Nothing press feedback (scale + opacity, no ripple) for the overlay's default-indication clickables.
+        LocalIndication provides com.jero009.essentialisland.ui.NothingPressIndication,
         com.jero009.essentialisland.ui.expanded.LocalMediaExpansion provides mediaExpansion,
         com.jero009.essentialisland.ui.expanded.LocalCardSteps provides cardStepsAccess,
         com.jero009.essentialisland.ui.expanded.LocalReaderScroll provides readerScrollTracker,

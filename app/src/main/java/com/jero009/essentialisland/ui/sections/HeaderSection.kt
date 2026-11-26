@@ -78,7 +78,7 @@ fun HeaderSection() {
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp))
                 )
             }
         }

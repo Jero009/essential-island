@@ -7,6 +7,7 @@
 
 package com.jero009.essentialisland.ui.sections
 
+import com.jero009.essentialisland.ui.components.NothingSegmented
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,7 +47,7 @@ internal fun IdleUnitsCard(settings: SmartIslandSettings, repository: SmartIslan
     val scope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth().searchAnchor("idle.units")
@@ -98,33 +99,12 @@ private fun UnitChoices(title: String, options: List<Pair<String, String>>, sele
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            options.forEach { (id, label) ->
-                val on = selected == id
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
-                        .clickable { onSelect(id) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
-                        color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+        // Shared Nothing OS 5 segment control: greyscale inversion + a gliding selected pill.
+        NothingSegmented(
+            options = options.map { it.first },
+            selected = selected,
+            label = { id -> options.first { it.first == id }.second },
+            onSelected = onSelect
+        )
     }
 }

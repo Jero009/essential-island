@@ -33,6 +33,7 @@ import com.jero009.essentialisland.data.SmartIslandSettings
 import com.jero009.essentialisland.data.SmartIslandSettingsRepository
 import com.jero009.essentialisland.model.FloatingWindowMode
 import com.jero009.essentialisland.ui.search.searchAnchor
+import com.jero009.essentialisland.ui.components.NothingSegmented
 import kotlinx.coroutines.launch
 
 /**
@@ -87,35 +88,15 @@ fun FloatingWindowRow(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                options.forEach { (id, label) ->
-                    val isSelected = id == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable { scope.launch { repository.setFloatingWindowMode(id) } }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            // Shared Nothing OS 5 segment control: greyscale inversion + a gliding selected pill.
+            NothingSegmented(
+                options = options.map { it.first },
+                selected = selected,
+                label = { id -> options.first { it.first == id }.second },
+                onSelected = { id ->
+                    scope.launch { repository.setFloatingWindowMode(id) }
                 }
-            }
+            )
             Text(
                 text = stringResource(
                     if (selected == FloatingWindowMode.ID_LMO) R.string.floating_window_mode_lmo_desc

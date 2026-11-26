@@ -22,20 +22,30 @@ import androidx.compose.runtime.setValue
 fun Modifier.bounceClick(onClick: () -> Unit) = composed {
     var isPressed by remember { mutableStateOf(false) }
     val currentOnClick by rememberUpdatedState(onClick)
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
-        // Mechanical easing (Nothing OS motion): no spring overshoot.
+    // Nothing OS press feedback (spec): scale 0.97 + opacity 0.85 over 140 ms with the standard
+    // mechanical ease — transform and opacity only, no spring overshoot, no colour flash.
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = androidx.compose.animation.core.tween(
             durationMillis = 140,
             easing = androidx.compose.animation.core.CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
         ),
-        label = "bounceScale"
+        label = "pressScale"
+    )
+    val pressAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.85f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 140,
+            easing = androidx.compose.animation.core.CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
+        ),
+        label = "pressAlpha"
     )
 
     this
         .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
+            scaleX = pressScale
+            scaleY = pressScale
+            alpha = pressAlpha
         }
         .pointerInput(Unit) {
             detectTapGestures(

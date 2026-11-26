@@ -498,7 +498,8 @@ internal fun rememberIslandLayout(
         if (it) 0.dp else collapsedTopShift
     }
     val radiusState = transition.animateDp(transitionSpec = { if (initialState == targetState) settleOrSnap else if (!targetState && collapseOnPill) collapseSettleSpec else sizeSpec }, label = "islandRadius") {
-        if (it) 34.dp else settings.cornerRadius.dp
+        // Nothing OS 5 radius ladder: the expanded card lands on lg = 28 dp (spec: radii 12/20/28).
+        if (it) 28.dp else settings.cornerRadius.dp
     }
 
     // Expanding: the collapsed content leaves quickly while the card grows, then the card content
