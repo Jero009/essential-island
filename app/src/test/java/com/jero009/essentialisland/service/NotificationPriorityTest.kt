@@ -203,6 +203,50 @@ class NotificationPriorityTest {
     }
 
     @Test
+    fun testFiringAlarmNotificationIsNeverIslandOnlyToKeepItRinging() {
+        val service = SmartIslandNotificationListenerService()
+        val notification = mockk<Notification>()
+        val extras = mockk<android.os.Bundle>()
+        every { extras.getCharSequence(Notification.EXTRA_TITLE) } returns "Alarm"
+        every { extras.getCharSequence(Notification.EXTRA_TEXT) } returns "07:00"
+        every { extras.getCharSequence(Notification.EXTRA_BIG_TEXT) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_SUB_TEXT) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_INFO_TEXT) } returns null
+        every { extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) } returns null
+        notification.extras = extras
+        notification.category = Notification.CATEGORY_ALARM
+        notification.flags = Notification.FLAG_ONGOING_EVENT
+        notification.actions = emptyArray()
+        notification.tickerText = null
+
+        // The clock's ringing alarm must stay in the system shade: cancelling it
+        // dismisses the alarm before it rings.
+        assertFalse(service.shouldBeIslandOnly(notification, IslandMode.Notification))
+    }
+
+    @Test
+    fun testUpcomingAlarmNotificationIsNeverIslandOnly() {
+        val service = SmartIslandNotificationListenerService()
+        val notification = mockk<Notification>()
+        val extras = mockk<android.os.Bundle>()
+        every { extras.getCharSequence(Notification.EXTRA_TITLE) } returns "Upcoming alarm"
+        every { extras.getCharSequence(Notification.EXTRA_TEXT) } returns "in 8 hours"
+        every { extras.getCharSequence(Notification.EXTRA_BIG_TEXT) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_SUB_TEXT) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_INFO_TEXT) } returns null
+        every { extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES) } returns null
+        every { extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) } returns null
+        notification.extras = extras
+        notification.category = null
+        notification.flags = 0
+        notification.actions = emptyArray()
+        notification.tickerText = null
+
+        assertFalse(service.shouldBeIslandOnly(notification, IslandMode.Notification))
+    }
+
+    @Test
     fun testDndOffAllowsNotifications() {
         val service = SmartIslandNotificationListenerService()
         val sbn = mockk<StatusBarNotification>()

@@ -70,6 +70,9 @@ import javax.inject.Inject
 class SmartIslandNotificationListenerService : NotificationListenerService() {
     // Keys the listener cancelled itself to make them island-only; their island copy stays alive.
     private val suppressedKeys = ConcurrentHashMap<String, Long>()
+    // Live silent ghost copies ("recent/pending" records kept in the system shade) keyed by their
+    // deterministic tag; rebuilt from the shade on listener reconnect.
+    private val ghostRegistry = ConcurrentHashMap<String, GhostNotificationPolicy.GhostRecord>()
     @Volatile private var currentSettings = SmartIslandSettings.Default
     private val coroutineExceptionHandler = CoroutineExceptionHandler { _, error ->
         android.util.Log.e(TAG, "Unhandled notification-listener coroutine failure", error)
@@ -545,6 +548,8 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
                     markSuppressed(sbn.key)
                     traceStage(sbn, "SHADE-CANCEL", "mode=$modeQuick (island-only, hidden from the system shade)")
                     runCatchingLogged(TAG, "Immediate cancel failed") { cancelNotification(sbn.key) }
+                    // The ghost replaces the cancelled original in the shade, silently (no heads-up/sound/vibration).
+                    postGhostCopy(sbn)
                     android.util.Log.d(TAG, "Immediate island-only suppress: ${sbn.key}")
                 }
             }
@@ -597,7 +602,11 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         val job = serviceScope.launch {
             runSuspendCatchingLogged(TAG, "NotificationRemoved handling failed") {
                 delay(removalDelayMs(sbn.key))
-                if (sbn.packageName == packageName) return@runSuspendCatchingLogged
+                if (sbn.packageName == packageName) {
+                    // The user dismissed one of our silent ghost copies: forget its record.
+                    sbn.tag?.let { ghostRegistry.remove(it) }
+                    return@runSuspendCatchingLogged
+                }
 
                 val now = SystemClock.elapsedRealtime()
                 if (now < (replyGraceUntil[sbn.key] ?: 0L)) {
@@ -668,7 +677,11 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         val job = serviceScope.launch {
             runSuspendCatchingLogged(TAG, "NotificationRemoved (no reason) handling failed") {
                 delay(removalDelayMs(sbn.key))
-                if (sbn.packageName == packageName) return@runSuspendCatchingLogged
+                if (sbn.packageName == packageName) {
+                    // The user dismissed one of our silent ghost copies: forget its record.
+                    sbn.tag?.let { ghostRegistry.remove(it) }
+                    return@runSuspendCatchingLogged
+                }
 
                 val now = SystemClock.elapsedRealtime()
                 if (now < (replyGraceUntil[sbn.key] ?: 0L)) {
@@ -705,6 +718,8 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         // is a no-op for both services while they are connected.
         com.jero009.essentialisland.util.SystemServiceRecovery.requestRecovery(applicationContext)
         scheduleCountRefresh()
+        // Rebuild the silent-copy registry from the shade (and re-apply the per-app cap).
+        reconcileGhostCopies()
         com.jero009.essentialisland.util.AppLogRecorder.i(
             "ListenerLifecycle",
             "onListenerConnected pid=${android.os.Process.myPid()} " +
@@ -764,7 +779,7 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
             if (settings.hideFromNotificationShade &&
                 shouldHideFromShade(sbn.notification, mode, sbn.packageName)
             ) {
-                suppressSystemNotification(sbn.key)
+                suppressSystemNotification(sbn.key, ghost = true)
             }
             handleNotificationPosted(sbn, settings, isInitialSync = true)
         }
@@ -1014,8 +1029,8 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
             shouldHideFromShade(notification, mode, sbn.packageName)
         if (removedFromShade) {
             // Ensure the shade copy is gone: after onNotificationPosted the sync cancel already ran and this starts the async retry loop;
-            // from onListenerConnected it is the only suppress call.
-            suppressSystemNotification(sbn.key)
+            // from onListenerConnected it is the only suppress call. The ghost re-post below is idempotent (same tag replaces).
+            suppressSystemNotification(sbn.key, ghost = true)
         }
 
         val mediaInfo = if (mode == IslandMode.Music) findMediaInfo(notification, sbn.packageName) else null
@@ -1976,6 +1991,17 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
     }
 
     internal fun shouldBeIslandOnly(notification: Notification, mode: IslandMode): Boolean {
+        // An alarm notification (ringing or upcoming) must NEVER be cancelled from the system
+        // shade: dismissing the clock's alarm notification while it fires kills the alarm before
+        // it ever becomes audible. Alarms do not map to Timer/Stopwatch mode (toIslandMode has
+        // no alarm branch), so without this guard they read as plain Notification mode and the
+        // hideFromNotificationShade cancel fires on them synchronously the moment they post.
+        val category = runCatching { notification.category }.getOrNull()
+        if (category == Notification.CATEGORY_ALARM ||
+            com.jero009.essentialisland.util.TimerStopwatchParser.isAlarm(notification)
+        ) {
+            return false
+        }
         if (mode == IslandMode.IncomingCall) {
             if (!isIncomingCall(notification)) return false
         }
@@ -1987,12 +2013,13 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         return true
     }
 
-    private fun suppressSystemNotification(key: String) {
+    private fun suppressSystemNotification(key: String, ghost: Boolean = false) {
         if (!currentSettings.enabled || !currentSettings.hideFromNotificationShade) return
         val activeSbn = runCatchingLogged(TAG, "Failed to get active notifications for key lookup") {
             activeNotifications.find { it.key == key }
         }
         if (activeSbn != null && activeSbn.packageName in currentSettings.disabledNotificationPackages) return
+        if (ghost && activeSbn != null) postGhostCopy(activeSbn)
 
         val now = SystemClock.elapsedRealtime()
         val lastSuppressedTime = suppressedKeys[key] ?: 0L
@@ -2034,6 +2061,151 @@ class SmartIslandNotificationListenerService : NotificationListenerService() {
         }
         pendingSuppressionJobs[key] = job
     }
+
+    /**
+     * Re-posts [sbn] (an island-only notification just cancelled from the shade) as a silent ghost
+     * copy under this app's package: still visible in the system notifications panel, but never
+     * actively displayed — the dedicated IMPORTANCE_LOW channel carries no sound, vibration or
+     * lights, and VISIBILITY_SECRET keeps it off the lockscreen. The deterministic tag means a
+     * re-posted/updated original replaces the ghost instead of duplicating it.
+     *
+     * The ghost reuses the original's contentIntent/actions PendingIntents: they stay valid
+     * cross-app and fire with the original app's identity. The bigContentView RemoteViews are NOT
+     * reused (SystemUI would inflate them against our package and fail to resolve the original
+     * app's layouts); BigTextStyle carries the expanded text instead.
+     */
+    private fun postGhostCopy(sbn: StatusBarNotification) {
+        if (!GhostNotificationPolicy.shouldPostGhost(
+                currentSettings.keepSilentCopyInShade,
+                currentSettings.hideFromNotificationShade
+            )
+        ) return
+        if (sbn.packageName == packageName) return
+        val notification = sbn.notification ?: return
+        runCatchingLogged(TAG, "Ghost copy post failed") {
+            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return@runCatchingLogged
+            if (!nm.areNotificationsEnabled()) {
+                android.util.Log.w(TAG, "Ghost copy skipped: notifications for $packageName are disabled")
+                return@runCatchingLogged
+            }
+            ensureGhostChannel(nm)
+            val extras = notification.extras
+            val appLabel = appLabelOf(sbn.packageName)
+            val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+            val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+            val bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
+            val tag = GhostNotificationPolicy.ghostTag(sbn.packageName, sbn.key)
+
+            val builder = Notification.Builder(this, GhostNotificationPolicy.CHANNEL_ID)
+                .setSmallIcon(notification.smallIcon ?: ownAppIcon())
+                .setContentTitle(title ?: appLabel)
+                .setContentText(text)
+                .setSubText(if (title != null) appLabel else null)
+                .setWhen(sbn.postTime)
+                .setShowWhen(true)
+                .setOnlyAlertOnce(true)
+                .setAutoCancel(true)
+                .setColor(notification.color)
+                .setContentIntent(notification.contentIntent)
+                .setExtras(
+                    android.os.Bundle().apply {
+                        putString(GhostNotificationPolicy.EXTRA_SOURCE_PACKAGE, sbn.packageName)
+                        putString(GhostNotificationPolicy.EXTRA_ORIGINAL_KEY, sbn.key)
+                    }
+                )
+            if (!bigText.isNullOrEmpty() || !text.isNullOrEmpty()) {
+                builder.setStyle(Notification.BigTextStyle().bigText(bigText ?: text))
+            }
+            notification.actions?.let { builder.setActions(*it) }
+
+            nm.notify(tag, GhostNotificationPolicy.GHOST_NOTIFICATION_ID, builder.build())
+            traceStage(sbn, "GHOST-POSTED", "tag=$tag (silent shade copy kept)")
+            android.util.Log.d(TAG, "Ghost copy posted: tag=$tag source=${sbn.packageName}")
+            ghostRegistry[tag] = GhostNotificationPolicy.GhostRecord(
+                tag = tag,
+                sourcePackage = sbn.packageName,
+                originalKey = sbn.key,
+                postTime = sbn.postTime
+            )
+            trimGhostOverflow(nm)
+        }
+    }
+
+    /** Lazily creates the silent channel the ghosts are posted on (no heads-up/sound/vibration/lights, hidden on lockscreen). */
+    private fun ensureGhostChannel(nm: NotificationManager) {
+        val existing = nm.getNotificationChannel(GhostNotificationPolicy.CHANNEL_ID)
+        if (existing != null && existing.importance == NotificationManager.IMPORTANCE_LOW) return
+        val channel = android.app.NotificationChannel(
+            GhostNotificationPolicy.CHANNEL_ID,
+            getString(com.jero009.essentialisland.R.string.silent_copies_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(com.jero009.essentialisland.R.string.silent_copies_channel_desc)
+            setSound(null, null)
+            enableVibration(false)
+            enableLights(false)
+            setShowBadge(false)
+            lockscreenVisibility = Notification.VISIBILITY_SECRET
+        }
+        nm.createNotificationChannel(channel)
+    }
+
+    /** Cancels the oldest ghosts beyond [GhostNotificationPolicy.MAX_GHOSTS_PER_APP] per source app. */
+    private fun trimGhostOverflow(nm: NotificationManager) {
+        GhostNotificationPolicy.ghostsToTrim(ghostRegistry.values.toList()).forEach { record ->
+            runCatchingLogged(TAG, "Ghost trim failed") {
+                nm.cancel(record.tag, GhostNotificationPolicy.GHOST_NOTIFICATION_ID)
+            }
+            ghostRegistry.remove(record.tag)
+            android.util.Log.d(TAG, "Ghost trimmed (per-app cap): tag=${record.tag}")
+        }
+    }
+
+    /**
+     * Rebuilds the ghost registry from the shade after a listener reconnect and re-applies the
+     * per-app cap. Ghosts whose original notification no longer exists are KEPT on purpose: they
+     * are the user's recent/pending record and only a manual swipe (or the cap) removes them.
+     */
+    private fun reconcileGhostCopies() {
+        if (!GhostNotificationPolicy.shouldPostGhost(
+                currentSettings.keepSilentCopyInShade,
+                currentSettings.hideFromNotificationShade
+            )
+        ) return
+        runCatchingLogged(TAG, "Ghost reconcile failed") {
+            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return@runCatchingLogged
+            val records = activeNotifications
+                ?.filter { it.packageName == packageName }
+                ?.mapNotNull { ghostRecordOf(it) }
+                .orEmpty()
+            ghostRegistry.clear()
+            records.forEach { ghostRegistry[it.tag] = it }
+            trimGhostOverflow(nm)
+            android.util.Log.d(TAG, "Ghost reconcile: ${records.size} silent copy/copies alive")
+        }
+    }
+
+    /** Recognizes one of our own notifications as a ghost and rebuilds its registry record. */
+    private fun ghostRecordOf(sbn: StatusBarNotification): GhostNotificationPolicy.GhostRecord? {
+        if (sbn.id != GhostNotificationPolicy.GHOST_NOTIFICATION_ID || sbn.tag == null) return null
+        val extras = sbn.notification?.extras ?: return null
+        val sourcePackage = extras.getString(GhostNotificationPolicy.EXTRA_SOURCE_PACKAGE) ?: return null
+        val originalKey = extras.getString(GhostNotificationPolicy.EXTRA_ORIGINAL_KEY) ?: return null
+        return GhostNotificationPolicy.GhostRecord(
+            tag = sbn.tag ?: return null,
+            sourcePackage = sourcePackage,
+            originalKey = originalKey,
+            postTime = sbn.postTime
+        )
+    }
+
+    /** Fallback small icon for originals that carry none: this app's launcher icon. */
+    private fun ownAppIcon(): android.graphics.drawable.Icon? = runCatching {
+        val iconRes = applicationInfo?.icon ?: 0
+        if (iconRes != 0) android.graphics.drawable.Icon.createWithResource(packageName, iconRes) else null
+    }.getOrNull()
 
     private val latePictureJobs = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Job>()
 
