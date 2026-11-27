@@ -89,6 +89,27 @@ class SmartIslandOverlayService : AccessibilityService() {
     private var collapseJob: kotlinx.coroutines.Job? = null
     private var lastParams: WindowManager.LayoutParams? = null
 
+    // Landscape card surfacing (island hidden, see model/LandscapeSurfacing.kt): the shrink-back linger and the
+    // view fade that ends it. The linger is anchored when the last waking card leaves or the island collapses;
+    // the view stays up while the card morphs back into the pill's spot, fades out over the linger's tail and
+    // only then hides.
+    private var lastLandscapeWakeCount = 0
+    private var landscapeShrinkLingerUntilMs = 0L
+    private var landscapeFadeOutStarted = false
+    private var landscapeViewFade: android.view.ViewPropertyAnimator? = null
+    private val landscapeShrinkFadeStart = Runnable {
+        if (destroyed || !::viewModel.isInitialized) return@Runnable
+        val view = islandView ?: return@Runnable
+        if (view.visibility != android.view.View.VISIBLE) return@Runnable
+        landscapeFadeOutStarted = true
+        fadeLandscapeViewTo(0f, landscapeFadeMs(viewModel.displaySettings.value))
+    }
+    private val landscapeShrinkHide = Runnable {
+        if (destroyed || !::viewModel.isInitialized) return@Runnable
+        // Past the linger: re-run the whole decision; with no waking card back it hides (and resets the fade).
+        updateWindowLayoutParams(isWindowExpanded, viewModel.displaySettings.value)
+    }
+
     private val torchCallback = object : android.hardware.camera2.CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
             if (destroyed || !::viewModel.isInitialized) return
@@ -1055,6 +1076,9 @@ class SmartIslandOverlayService : AccessibilityService() {
                         isWindowExpanded = true
                         updateWindowLayoutParams(true, viewModel.displaySettings.value)
                     } else {
+                        // A collapse starting while the view is up in the hidden-island landscape mode anchors the
+                        // shrink-back linger (the card's own removal may already have anchored it moments earlier).
+                        anchorLandscapeShrinkLingerIfShowing()
                         collapseJob = serviceScope.launch {
                             kotlinx.coroutines.delay(AUTO_COLLAPSE_DELAY_MS)
                             isWindowExpanded = false
@@ -1377,12 +1401,15 @@ class SmartIslandOverlayService : AccessibilityService() {
                 val isLocked = keyguardManager?.isKeyguardLocked == true
                 isLockScreenActive = isLocked
                 val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility).
+                // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility):
+                // app notifications and calls only (LandscapeSurfacing).
                 val isHidden = com.jero009.essentialisland.model.isIslandViewHidden(
                     viewModel.displaySettings.value,
                     isLocked,
                     isLandscape,
-                    viewModel.visibleNotifications.value.size,
+                    com.jero009.essentialisland.model.LandscapeSurfacing.wakeCount(
+                        viewModel.visibleNotifications.value
+                    ) { viewModel.displaySettings.value.isLandscapeEventEnabled(it) },
                     viewModel.exemptionNow()
                 )
                 visibility = if (isHidden) android.view.View.GONE else android.view.View.VISIBLE
@@ -1705,6 +1732,63 @@ class SmartIslandOverlayService : AccessibilityService() {
         )
     }
 
+    /** Anchors the shrink-back linger when a collapse starts while the view is up in the hidden-island landscape mode. */
+    private fun anchorLandscapeShrinkLingerIfShowing() {
+        if (destroyed || !::viewModel.isInitialized) return
+        if (resources.configuration.orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE) return
+        val settingsNow = viewModel.displaySettings.value
+        if (settingsNow.showInLandscape || islandView?.visibility != android.view.View.VISIBLE) return
+        landscapeShrinkLingerUntilMs = android.os.SystemClock.elapsedRealtime() + landscapeShrinkLingerMs(settingsNow)
+    }
+
+    private fun landscapeShrinkLingerMs(settings: SmartIslandSettings): Long =
+        settings.animationSpeed(true)
+            .durationMs(com.jero009.essentialisland.model.LandscapeSurfacing.SHRINK_LINGER_BASE_MS).toLong()
+
+    private fun landscapeFadeMs(settings: SmartIslandSettings): Long =
+        settings.animationSpeed(true)
+            .durationMs(com.jero009.essentialisland.model.LandscapeSurfacing.FADE_TAIL_BASE_MS).toLong()
+
+    /** One shared view-level fade; cancels whatever ran before so the two directions never fight. */
+    private fun fadeLandscapeViewTo(target: Float, durationMs: Long) {
+        val view = islandView ?: return
+        landscapeViewFade?.cancel()
+        landscapeViewFade = view.animate()
+            .alpha(target)
+            .setDuration(durationMs.coerceAtLeast(1L))
+            .setInterpolator(VIEW_FADE_INTERPOLATOR)
+            .also { it.start() }
+    }
+
+    private fun stopLandscapeViewFade() {
+        landscapeViewFade?.cancel()
+        landscapeViewFade = null
+        landscapeFadeOutStarted = false
+    }
+
+    private fun cancelLandscapeShrinkChecks() {
+        windowHandler.removeCallbacks(landscapeShrinkFadeStart)
+        windowHandler.removeCallbacks(landscapeShrinkHide)
+    }
+
+    /** Holds the window for the rest of the linger, starts the fade at the linger's tail and schedules the hide. */
+    private fun scheduleLandscapeShrinkFinish(settings: SmartIslandSettings) {
+        val nowMs = android.os.SystemClock.elapsedRealtime()
+        val fadeMs = landscapeFadeMs(settings)
+        windowHandler.removeCallbacks(landscapeShrinkHide)
+        windowHandler.postDelayed(
+            landscapeShrinkHide,
+            (landscapeShrinkLingerUntilMs - nowMs).coerceAtLeast(0L) + VIEW_FRAME_MS
+        )
+        if (!landscapeFadeOutStarted) {
+            windowHandler.removeCallbacks(landscapeShrinkFadeStart)
+            windowHandler.postDelayed(
+                landscapeShrinkFadeStart,
+                (landscapeShrinkLingerUntilMs - fadeMs - nowMs).coerceAtLeast(0L)
+            )
+        }
+    }
+
     private fun updateWindowLayoutParams(expanded: Boolean, settings: SmartIslandSettings) {
         if (destroyed || !::windowManager.isInitialized || !::viewModel.isInitialized) return
         val view = islandView ?: return
@@ -1717,21 +1801,65 @@ class SmartIslandOverlayService : AccessibilityService() {
         viewModel.isLocked.value = isLocked
         
         val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        val visibleCount = viewModel.visibleNotifications.value.size
-        // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility).
-        val isHidden = com.jero009.essentialisland.model.isIslandViewHidden(
+        val notificationsNow = viewModel.visibleNotifications.value
+        val visibleCount = notificationsNow.size
+        // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility):
+        // app notifications and calls only; device-state cards (battery, connectivity, timers, ...) never wake it.
+        val landscapeWake = com.jero009.essentialisland.model.LandscapeSurfacing.wakeCount(notificationsNow) {
+            settings.isLandscapeEventEnabled(it)
+        }
+        val nowMs = android.os.SystemClock.elapsedRealtime()
+        // The moment the last waking card leaves anchors the shrink-back linger: the view stays up while the
+        // island morphs back into the hidden pill's spot, then fades out and hides. Anchored here — where every
+        // collector funnels through — it is safe whatever order the notification and expand collectors ran in.
+        if (isLandscape && !settings.showInLandscape && landscapeWake == 0 && lastLandscapeWakeCount > 0) {
+            anchorLandscapeShrinkLingerIfShowing()
+        }
+        lastLandscapeWakeCount = landscapeWake
+        val isHidden = com.jero009.essentialisland.model.LandscapeSurfacing.effectiveHidden(
             settings,
             isLocked,
             isLandscape,
-            visibleCount,
-            viewModel.exemptionNow()
+            landscapeWake,
+            viewModel.exemptionNow(),
+            nowMs,
+            landscapeShrinkLingerUntilMs
         )
         // Static exempt app (portrait): the collapsed pill stays where it is, but takes no touches and shows nothing.
         val isStatic = !isHidden && viewModel.exemptionNow() == com.jero009.essentialisland.model.ExemptMode.Static
 
+        val wasVisible = view.visibility == android.view.View.VISIBLE
         val targetVisibility = if (isHidden) android.view.View.GONE else android.view.View.VISIBLE
         if (view.visibility != targetVisibility) {
             view.visibility = targetVisibility
+        }
+        // The shrink-back linger is live (no waking card, island hidden in landscape, view still up): hold the
+        // window, fade the linger's tail, then hide. With waking cards (or the pill's own modes) the view is
+        // simply at full opacity; an arrival that did not auto-expand eases the pill in instead of popping.
+        val cardsLandscapeHidden = isLandscape && !settings.showInLandscape && settings.showNotificationCardsInLandscape
+        val shrinkLingerActive = !isHidden && cardsLandscapeHidden && landscapeWake == 0 && wasVisible
+        if (isHidden) {
+            stopLandscapeViewFade()
+            cancelLandscapeShrinkChecks()
+            view.alpha = 1f
+        } else if (shrinkLingerActive) {
+            scheduleLandscapeShrinkFinish(settings)
+        } else {
+            cancelLandscapeShrinkChecks()
+            if (!wasVisible && targetVisibility == android.view.View.VISIBLE &&
+                cardsLandscapeHidden && landscapeWake > 0 &&
+                !viewModel.expanded.value &&
+                !com.jero009.essentialisland.util.SystemAnimScale.animationsOff()
+            ) {
+                // A waking card arrived while the island was hidden and this card does not auto-expand (per-app
+                // rule, cooldown, lock screen): the pill eases in at the cutout instead of popping in. When it
+                // does auto-expand the growth morph is the entrance, so no fade runs.
+                if (view.alpha > 0.999f) view.alpha = 0f
+                fadeLandscapeViewTo(1f, landscapeFadeMs(settings))
+            } else if (view.alpha != 1f) {
+                // A waking card arrived mid fade-out: come back to full opacity quickly, never a snap.
+                fadeLandscapeViewTo(1f, VIEW_FADE_RETURN_MS)
+            }
         }
 
         val isSplitMode = !isStatic && com.jero009.essentialisland.model.hasSecondaryCutout(
@@ -1775,7 +1903,8 @@ class SmartIslandOverlayService : AccessibilityService() {
         // While a card is on the island the window is already full height when collapsed (the touchable region keeps every touch
         // outside the pill going to the app below, as it does for the full width). Growing the window on the tap took a frame or
         // two, and the opening card was clipped to the small collapsed window before the jump to its real height.
-        val preGrown = isTouchableRegionSupported.value && visibleCount > 0 && !isHidden && !isStatic
+        // The shrink-back linger counts too: the card morphing back down into the pill's spot must not be clipped either.
+        val preGrown = isTouchableRegionSupported.value && (visibleCount > 0 || shrinkLingerActive) && !isHidden && !isStatic
         // the square scan is taller than the collapsed window
         val faceIdState = com.jero009.essentialisland.util.FaceIdController.state.value
         val fullWindow = expanded || widgetWindowOpen ||
@@ -1851,6 +1980,11 @@ class SmartIslandOverlayService : AccessibilityService() {
     }
 
     private fun removeCollapsedWindow() {
+        // Landscape card-surfacing state first: it must be cleared even when the view is already gone.
+        stopLandscapeViewFade()
+        cancelLandscapeShrinkChecks()
+        lastLandscapeWakeCount = 0
+        landscapeShrinkLingerUntilMs = 0L
         val view = islandView ?: return
         // Clear the reference before removal so repeated teardown calls are harmless,
         // even when an OEM WindowManager throws while detaching an already-removed view.
@@ -2407,6 +2541,16 @@ class SmartIslandOverlayService : AccessibilityService() {
             private set
 
         private const val TAG = "SmartIslandOverlayService"
+
+        /** Standard material curve for the view-level card-surfacing fades: fast out, slow in, no bounce. */
+        private val VIEW_FADE_INTERPOLATOR = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
+
+        /** A fade-out interrupted by a waking card comes back to full opacity this quickly. */
+        private const val VIEW_FADE_RETURN_MS = 120L
+
+        /** One frame of slack so the hide check runs strictly after the linger has expired. */
+        private const val VIEW_FRAME_MS = 16L
+
         private const val LMO_TASK_POLL_WINDOW_MS = 3_000L
         private const val LMO_TASK_POLL_MS = 30L
         private const val LMO_DISPLAY_WAIT_MS = 2_000L

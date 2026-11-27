@@ -16,20 +16,22 @@ import com.jero009.essentialisland.data.SmartIslandSettings
  * Lock-screen hide and exempt-app Off hide everything, exactly as before. The pure landscape
  * case is the only one that changed: with [SmartIslandSettings.showInLandscape] off, the idle
  * pill/cutout stays hidden, but while [SmartIslandSettings.showNotificationCardsInLandscape]
- * is on and at least one card is on the island, the view stays visible so the card(s) can
- * show — and hides again once the last card is gone.
+ * is on and at least one waking card is on the island, the view stays visible so the card(s)
+ * can show — and hides again once the last one is gone. Waking cards are app notifications and
+ * incoming calls only ([LandscapeSurfacing.wakeCount]); device-state cards never surface the
+ * hidden island. The count is ignored in portrait.
  */
 fun isIslandViewHidden(
     settings: SmartIslandSettings,
     isLocked: Boolean,
     isLandscape: Boolean,
-    visibleCardCount: Int,
+    landscapeWakeCount: Int,
     exemptMode: ExemptMode
 ): Boolean {
     if (!settings.showOnLockScreen && isLocked) return true
     if (exemptMode == ExemptMode.Off) return true
     if (isLandscape && !settings.showInLandscape) {
-        return !(settings.showNotificationCardsInLandscape && visibleCardCount > 0)
+        return !(settings.showNotificationCardsInLandscape && landscapeWakeCount > 0)
     }
     return false
 }
