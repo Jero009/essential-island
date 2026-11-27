@@ -58,6 +58,12 @@ data class SmartIslandSettings(
     val lockScreenPrivacy: String = "AppIconOnly",
     val showNotificationActions: Boolean = true,
     val hideFromNotificationShade: Boolean = true,
+    /**
+     * Keep a silent "ghost" copy of island-only notifications in the system shade: the panel still
+     * shows them, but the system never actively displays them (no heads-up, sound or vibration).
+     * When off, suppressing an island-only notification leaves no trace, exactly as before.
+     */
+    val keepSilentCopyInShade: Boolean = true,
     val liveActivitiesEnabled: Boolean = true,
     val navigationEnabled: Boolean = true,
     val disabledNotificationPackages: Set<String> = emptySet(),
@@ -466,6 +472,7 @@ data class SmartIslandSettings(
         settingsObj.put("lockScreenPrivacy", lockScreenPrivacy)
         settingsObj.put("showNotificationActions", showNotificationActions)
         settingsObj.put("hideFromNotificationShade", hideFromNotificationShade)
+        settingsObj.put("keepSilentCopyInShade", keepSilentCopyInShade)
         settingsObj.put("liveActivitiesEnabled", liveActivitiesEnabled)
         settingsObj.put("navigationEnabled", navigationEnabled)
 
@@ -922,6 +929,7 @@ data class SmartIslandSettings(
                 },
                 showNotificationActions = obj.optBoolean("showNotificationActions", defaults.showNotificationActions),
                 hideFromNotificationShade = obj.optBoolean("hideFromNotificationShade", defaults.hideFromNotificationShade),
+                keepSilentCopyInShade = obj.optBoolean("keepSilentCopyInShade", defaults.keepSilentCopyInShade),
                 liveActivitiesEnabled = obj.optBoolean("liveActivitiesEnabled", defaults.liveActivitiesEnabled),
                 navigationEnabled = obj.optBoolean("navigationEnabled", defaults.navigationEnabled),
                 disabledNotificationPackages = safeStringSet("disabledNotificationPackages", defaults.disabledNotificationPackages),

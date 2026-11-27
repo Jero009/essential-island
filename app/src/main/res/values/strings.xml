@@ -331,6 +331,10 @@
     <string name="toggle_quick_actions_desc">Show actionable buttons like Reply, Mark Read, and Dismiss in expanded card</string>
     <string name="toggle_mirror_only_title">Mirror Only (Hide from System Shade)</string>
     <string name="toggle_mirror_only_desc">Show notification only in Essential Island and hide from default notification shade. Nothing phones: a Glyph only lights while its notification exists in the shade — use Keep in system shade below for the apps you want the Glyph on.</string>
+    <string name="toggle_keep_silent_copy_title">Keep Silent Copy in System Shade</string>
+    <string name="toggle_keep_silent_copy_desc">Keep a silent copy of island-only notifications in the system panel: still listed there, but never heads-up, sound or vibration. Copies stay until you swipe them away; at most the 10 newest per app are kept.</string>
+    <string name="silent_copies_channel_name">Silent copies</string>
+    <string name="silent_copies_channel_desc">Silent shade copies of island-only notifications — no heads-up, sound or vibration.</string>
     <string name="toggle_auto_hide_idle_title">Auto-Hide Pill When Idle</string>
     <string name="toggle_auto_hide_idle_desc">Hide the pill completely when there are no active alerts, music, or dynamic events</string>
     <string name="toggle_auto_hide_pill_title">Auto-Hide Pill After Inactivity</string>

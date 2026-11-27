@@ -75,6 +75,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
         val LockScreenPrivacy = stringPreferencesKey("lock_screen_privacy")
         val ShowNotificationActions = booleanPreferencesKey("show_notification_actions")
         val HideFromNotificationShade = booleanPreferencesKey("hide_from_notification_shade")
+        val KeepSilentCopyInShade = booleanPreferencesKey("keep_silent_copy_in_shade")
         val LiveActivitiesEnabled = booleanPreferencesKey("live_activities_enabled")
         val NavigationEnabled = booleanPreferencesKey("navigation_enabled")
         val DisabledNotificationPackages = stringSetPreferencesKey("disabled_notification_packages")
@@ -357,6 +358,8 @@ class SmartIslandSettingsRepository(private val context: Context) {
                     ?: defaults.showNotificationActions,
                 hideFromNotificationShade = prefs[Keys.HideFromNotificationShade]
                     ?: defaults.hideFromNotificationShade,
+                keepSilentCopyInShade = prefs[Keys.KeepSilentCopyInShade]
+                    ?: defaults.keepSilentCopyInShade,
                 liveActivitiesEnabled = prefs[Keys.LiveActivitiesEnabled]
                     ?: defaults.liveActivitiesEnabled,
                 navigationEnabled = prefs[Keys.NavigationEnabled]
@@ -863,6 +866,10 @@ class SmartIslandSettingsRepository(private val context: Context) {
     }
     suspend fun setHideFromNotificationShade(value: Boolean) = editSafely {
         it[Keys.HideFromNotificationShade] = value
+    }
+
+    suspend fun setKeepSilentCopyInShade(value: Boolean) = editSafely {
+        it[Keys.KeepSilentCopyInShade] = value
     }
     suspend fun setDisabledNotificationPackages(value: Set<String>) = editSafely {
         it[Keys.DisabledNotificationPackages] = value
@@ -1461,6 +1468,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
             ?: SmartIslandSettings.Default.lockScreenPrivacy
         prefs[Keys.ShowNotificationActions] = settings.showNotificationActions
         prefs[Keys.HideFromNotificationShade] = settings.hideFromNotificationShade
+        prefs[Keys.KeepSilentCopyInShade] = settings.keepSilentCopyInShade
         prefs[Keys.LiveActivitiesEnabled] = settings.liveActivitiesEnabled
         prefs[Keys.NavigationEnabled] = settings.navigationEnabled
         prefs[Keys.DisabledNotificationPackages] = settings.disabledNotificationPackages

@@ -322,6 +322,8 @@
     <string name="toggle_quick_actions_desc">在扩展名片中显示可操作按钮, 如回复、 Mark Read 和 dispission</string>
     <string name="toggle_mirror_only_title">只镜像( 从系统阴影隐藏)</string>
     <string name="toggle_mirror_only_desc">仅在 Essential Island 中显示通知并隐藏默认通知阴影</string>
+    <string name="toggle_keep_silent_copy_title">在系统面板保留静默副本</string>
+    <string name="toggle_keep_silent_copy_desc">为仅岛内通知在系统面板保留一份静默副本：仍会显示在列表中，但不会有浮动通知、声音或振动。副本会一直保留，直到你手动划掉；每个应用最多保留最新的 10 条。</string>
     <string name="toggle_auto_hide_idle_title">空闲时自动隐藏药丸</string>
     <string name="toggle_auto_hide_idle_desc">当没有主动提醒、音乐或动态事件时, 完全隐藏药丸</string>
     <string name="toggle_auto_hide_pill_title">不活动后自动隐藏药丸</string>

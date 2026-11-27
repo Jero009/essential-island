@@ -516,6 +516,25 @@ fun NotificationsAndPrivacySection(
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 
+                // Only meaningful while the island hides notifications from the shade at all.
+                AnimatedVisibility(
+                    visible = settings.hideFromNotificationShade,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column {
+                        ToggleRowItem(
+                            searchKey = "np.keep_silent_copy",
+                            title = stringResource(R.string.toggle_keep_silent_copy_title),
+                            subtitle = stringResource(R.string.toggle_keep_silent_copy_desc),
+                            icon = Icons.Rounded.NotificationsOff,
+                            checked = settings.keepSilentCopyInShade,
+                            onCheckedChange = { scope.launch { repository.setKeepSilentCopyInShade(it) } }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    }
+                }
+
                 ToggleRowItem(
                     searchKey = "np.hide_when_idle",
                     title = stringResource(R.string.toggle_auto_hide_idle_title),

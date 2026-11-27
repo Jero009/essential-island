@@ -27,6 +27,7 @@ class SmartIslandSettingsTest {
         assertEquals(0xFF000000L, settings.pillColor)
         assertEquals(true, settings.showNotificationActions)
         assertEquals(true, settings.hideFromNotificationShade)
+        assertEquals(true, settings.keepSilentCopyInShade)
         assertEquals(true, settings.autoExpandOnNotification)
         assertEquals(true, settings.autoExpandOnLockScreen)
         assertEquals(true, settings.enableShadow)
@@ -111,6 +112,7 @@ class SmartIslandSettingsTest {
             lockScreenPrivacy = "FullContent",
             showNotificationActions = false,
             hideFromNotificationShade = false,
+            keepSilentCopyInShade = false,
             liveActivitiesEnabled = false,
             navigationEnabled = false,
             disabledNotificationPackages = setOf("com.spam.app"),
@@ -163,6 +165,13 @@ class SmartIslandSettingsTest {
         org.junit.Assert.assertNotNull(metadata)
         assertEquals("7.0.0", metadata?.appVersion)
         assertEquals(SmartIslandSettings.BACKUP_FORMAT_VERSION, metadata?.formatVersion)
+    }
+
+    @Test
+    fun testKeepSilentCopyFallsBackToDefaultWhenKeyMissing() {
+        // Backups saved before the silent-copy feature existed carry no key: the default (on) applies.
+        val old = SmartIslandSettings.fromJson("""{"settings": {"width": 100}}""")
+        assertEquals(true, old.keepSilentCopyInShade)
     }
 
     @Test

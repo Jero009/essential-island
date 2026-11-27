@@ -240,6 +240,10 @@ internal fun buildSettingsSearchIndex(str: (Int) -> String): List<SettingsSearch
         listOf("shade", "status bar", "remove", "hide notification", "drawer")
     )
     npToggle(
+        "keep_silent_copy", R.string.toggle_keep_silent_copy_title, R.string.toggle_keep_silent_copy_desc,
+        listOf("shade", "silent", "ghost", "copy", "quiet", "heads-up", "panel", "records")
+    )
+    npToggle(
         "hide_when_idle", R.string.toggle_auto_hide_idle_title, R.string.toggle_auto_hide_idle_desc,
         listOf("hide", "idle", "pill", "inactive", "clean", "minimal")
     )

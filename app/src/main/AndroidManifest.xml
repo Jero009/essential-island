@@ -27,6 +27,10 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Posting the silent "ghost" copies of island-only notifications (visible in the shade, never
+         heads-up/sound/vibration). Runtime grant on Android 13+; the app already requests it via
+         Shizuku (see ShizukuManager) and the system prompt. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Brightness slider on the Utilities page: writing the screen brightness needs this special permission (granted in system settings). -->
     <uses-permission
         android:name="android.permission.WRITE_SETTINGS"

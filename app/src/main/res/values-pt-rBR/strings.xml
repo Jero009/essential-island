@@ -322,6 +322,8 @@
     <string name="toggle_quick_actions_desc">Mostrar os botões acionáveis como Responder, Marcar Ler e Desactivar na carta expandida</string>
     <string name="toggle_mirror_only_title">Espelho Apenas (Esconder da Sombra do Sistema)</string>
     <string name="toggle_mirror_only_desc">Mostrar a notificação apenas em Essential Island e esconder do tom de notificação padrão</string>
+    <string name="toggle_keep_silent_copy_title">Manter Cópia Silenciosa no Painel</string>
+    <string name="toggle_keep_silent_copy_desc">Mantém uma cópia silenciosa das notificações só-ilha no painel do sistema: continuam listadas, mas sem heads-up, som ou vibração. As cópias ficam até você desliza-las para remover; no máximo as 10 mais recentes por app são mantidas.</string>
     <string name="toggle_auto_hide_idle_title">Esconder automaticamente o comprimido quando inactivo</string>
     <string name="toggle_auto_hide_idle_desc">Ocultar a pílula completamente quando não houver alertas ativos, música ou eventos dinâmicos</string>
     <string name="toggle_auto_hide_pill_title">Esconder automaticamente o comprimido após a inatividade</string>

@@ -322,6 +322,8 @@
     <string name="toggle_quick_actions_desc">アクション可能なボタンを表示 応答, マーク読み取り, 拡張カードで却下</string>
     <string name="toggle_mirror_only_title">ミラーのみ(システムシェードからの非表示)</string>
     <string name="toggle_mirror_only_desc">Essential Islandでのみ通知を表示し、デフォルトの通知シェードから隠す</string>
+    <string name="toggle_keep_silent_copy_title">システムシェードにサイレントコピーを残す</string>
+    <string name="toggle_keep_silent_copy_desc">アイランド専用通知のサイレントコピーをシステムパネルに残します。一覧には表示されますが、ヘッドアップ・音・バイブレーションは一切ありません。コピーはスワイプで削除するまで残り、アプリごとに最大10件の新しいものを保持します。</string>
     <string name="toggle_auto_hide_idle_title">オートハイドの丸いときの丸薬</string>
     <string name="toggle_auto_hide_idle_desc">アクティブなアラート、音楽、または動的イベントがない場合、ピルを完全に隠す</string>
     <string name="toggle_auto_hide_pill_title">活動の後の自動隠された丸薬</string>

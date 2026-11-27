@@ -322,6 +322,8 @@
     <string name="toggle_quick_actions_desc">Mostrar botones accionables como Responder, Mark Read, y Desmontar en la tarjeta ampliada</string>
     <string name="toggle_mirror_only_title">Espejo Sólo (Hide de la forma del sistema)</string>
     <string name="toggle_mirror_only_desc">Mostrar la notificación sólo en Essential Island y ocultar de la notificación predeterminada sombra</string>
+    <string name="toggle_keep_silent_copy_title">Copia silenciosa en el panel del sistema</string>
+    <string name="toggle_keep_silent_copy_desc">Guarda una copia silenciosa de las notificaciones solo-isla en el panel del sistema: siguen apareciendo, pero sin aviso flotante, sonido ni vibración. Las copias se quedan hasta que las deslices; se conservan como máximo las 10 más recientes por app.</string>
     <string name="toggle_auto_hide_idle_title">Almohadilla automática cuando cuelga</string>
     <string name="toggle_auto_hide_idle_desc">Ocultar la píldora completamente cuando no hay alertas activas, música o eventos dinámicos</string>
     <string name="toggle_auto_hide_pill_title">Pill Auto-Hide Después de la Inactividad</string>
