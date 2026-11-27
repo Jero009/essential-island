@@ -77,6 +77,12 @@ data class SmartIslandSettings(
     val autoHidePill: Boolean = false,
     val autoHideTimeoutSeconds: Int = 5,
     val showInLandscape: Boolean = true,
+    /**
+     * With showInLandscape off, the idle pill/cutout stays hidden in landscape, but notification
+     * cards still surface: a card arriving in landscape makes the island view visible, and it hides
+     * again once no card is left. Off = the pre-toggle behavior (landscape hides everything).
+     */
+    val showNotificationCardsInLandscape: Boolean = true,
     val autoExpandOnNotification: Boolean = true,
     /** False: nothing opens the island by itself while the phone is locked (cards still show in the pill). */
     val autoExpandOnLockScreen: Boolean = true,
@@ -495,6 +501,7 @@ data class SmartIslandSettings(
         settingsObj.put("autoHidePill", autoHidePill)
         settingsObj.put("autoHideTimeoutSeconds", autoHideTimeoutSeconds)
         settingsObj.put("showInLandscape", showInLandscape)
+        settingsObj.put("showNotificationCardsInLandscape", showNotificationCardsInLandscape)
         settingsObj.put("autoExpandOnNotification", autoExpandOnNotification)
         settingsObj.put("autoExpandOnLockScreen", autoExpandOnLockScreen)
         settingsObj.put("enableShadow", enableShadow)
@@ -940,6 +947,7 @@ data class SmartIslandSettings(
                 autoHidePill = obj.optBoolean("autoHidePill", defaults.autoHidePill),
                 autoHideTimeoutSeconds = obj.optInt("autoHideTimeoutSeconds", defaults.autoHideTimeoutSeconds).coerceIn(1, 120),
                 showInLandscape = obj.optBoolean("showInLandscape", defaults.showInLandscape),
+                showNotificationCardsInLandscape = obj.optBoolean("showNotificationCardsInLandscape", defaults.showNotificationCardsInLandscape),
                 autoExpandOnNotification = obj.optBoolean("autoExpandOnNotification", defaults.autoExpandOnNotification),
                 autoExpandOnLockScreen = obj.optBoolean("autoExpandOnLockScreen", defaults.autoExpandOnLockScreen),
                 enableShadow = obj.optBoolean("enableShadow", defaults.enableShadow),

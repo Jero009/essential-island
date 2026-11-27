@@ -159,6 +159,11 @@ internal fun buildSettingsSearchIndex(str: (Int) -> String): List<SettingsSearch
         listOf("landscape", "rotate", "horizontal", "rotation", "hide"), "layout.show_landscape"
     )
     add(
+        "layout.show_cards_landscape", str(R.string.toggle_show_notification_cards_landscape_title), SearchTarget.Tab(StudioTab.Position, true),
+        layout, Icons.Rounded.Tune, str(R.string.toggle_show_notification_cards_landscape_desc),
+        listOf("landscape", "notification", "cards", "rotate", "horizontal", "rotation", "hide"), "layout.show_cards_landscape"
+    )
+    add(
         "layout.edge_inset", str(R.string.landscape_edge_inset_title), SearchTarget.Tab(StudioTab.Position, true),
         layout, Icons.Rounded.Tune, str(R.string.landscape_edge_inset_desc),
         listOf("edge", "inset", "margin", "corner", "side", "distance", "landscape", "circle", "bar"), "layout.edge_inset"

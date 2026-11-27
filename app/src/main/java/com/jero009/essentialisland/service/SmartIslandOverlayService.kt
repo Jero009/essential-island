@@ -1377,8 +1377,14 @@ class SmartIslandOverlayService : AccessibilityService() {
                 val isLocked = keyguardManager?.isKeyguardLocked == true
                 isLockScreenActive = isLocked
                 val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                val isHidden = (!viewModel.displaySettings.value.showOnLockScreen && isLocked) || (isLandscape && !viewModel.displaySettings.value.showInLandscape) ||
-                    viewModel.exemptionNow() == com.jero009.essentialisland.model.ExemptMode.Off
+                // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility).
+                val isHidden = com.jero009.essentialisland.model.isIslandViewHidden(
+                    viewModel.displaySettings.value,
+                    isLocked,
+                    isLandscape,
+                    viewModel.visibleNotifications.value.size,
+                    viewModel.exemptionNow()
+                )
                 visibility = if (isHidden) android.view.View.GONE else android.view.View.VISIBLE
 
                 installOverlayViewTreeOwners()
@@ -1712,8 +1718,14 @@ class SmartIslandOverlayService : AccessibilityService() {
         
         val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val visibleCount = viewModel.visibleNotifications.value.size
-        val isHidden = (!settings.showOnLockScreen && isLocked) || (isLandscape && !settings.showInLandscape) ||
-            viewModel.exemptionNow() == com.jero009.essentialisland.model.ExemptMode.Off
+        // Cards surface the island in landscape even when the idle pill is hidden (see IslandViewVisibility).
+        val isHidden = com.jero009.essentialisland.model.isIslandViewHidden(
+            settings,
+            isLocked,
+            isLandscape,
+            visibleCount,
+            viewModel.exemptionNow()
+        )
         // Static exempt app (portrait): the collapsed pill stays where it is, but takes no touches and shows nothing.
         val isStatic = !isHidden && viewModel.exemptionNow() == com.jero009.essentialisland.model.ExemptMode.Static
 

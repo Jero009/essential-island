@@ -331,6 +331,8 @@
     <string name="auto_hide_timeout_label">隐藏不活动超时</string>
     <string name="toggle_show_in_landscape_title">在景观模式下显示</string>
     <string name="toggle_show_in_landscape_desc">在旋转设备到景观方向时保持Essential Island的可见性</string>
+    <string name="toggle_show_notification_cards_landscape_title">横屏时显示通知卡片</string>
+    <string name="toggle_show_notification_cards_landscape_desc">即使横屏时岛已隐藏，通知到达时仍会显示卡片；卡片消失后岛会再次隐藏</string>
     <string name="toggle_bluetooth_battery_title">蓝牙电池和耳机动画</string>
     <string name="toggle_bluetooth_battery_desc">显示连接设备电池百分比, 并与岛上的耳机图标平稳交替</string>
     <string name="toggle_battery_mode_title">电池充电事件( C)</string>

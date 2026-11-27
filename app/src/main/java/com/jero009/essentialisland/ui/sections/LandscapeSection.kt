@@ -113,6 +113,35 @@ fun LandscapeSection(
             }
         }
 
+        // Only meaningful when the island itself is hidden in landscape.
+        Box(modifier = Modifier.searchAnchor("layout.show_cards_landscape")) {
+            LandscapeCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.toggle_show_notification_cards_landscape_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.toggle_show_notification_cards_landscape_desc),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = settings.showNotificationCardsInLandscape,
+                        onCheckedChange = { scope.launch { repository.setShowNotificationCardsInLandscape(it) } }
+                    )
+                }
+            }
+        }
+
         // Distance from the screen's side edge: one number shared by the idle circle and the bar.
         Box(modifier = Modifier.searchAnchor("layout.edge_inset")) {
             LandscapeCard {

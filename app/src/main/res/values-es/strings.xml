@@ -331,6 +331,8 @@
     <string name="auto_hide_timeout_label">Ocultar el tiempo de inactividad</string>
     <string name="toggle_show_in_landscape_title">Show in Landscape Mode</string>
     <string name="toggle_show_in_landscape_desc">Mantenga la Essential Island visible cuando el dispositivo giratorio a la orientación del paisaje</string>
+    <string name="toggle_show_notification_cards_landscape_title">Mostrar tarjetas de notificación en modo paisaje</string>
+    <string name="toggle_show_notification_cards_landscape_desc">Aunque la isla esté oculta en modo paisaje, una tarjeta de notificación aparece al llegar; la isla se oculta de nuevo cuando no quedan tarjetas</string>
     <string name="toggle_bluetooth_battery_title">Batería Bluetooth " Ánimación de Árbudos</string>
     <string name="toggle_bluetooth_battery_desc">Mostrar porcentaje de batería de dispositivo conectado y alternar suavemente con el icono de los auriculares en la isla</string>
     <string name="toggle_battery_mode_title">Eventos de carga de batería</string>

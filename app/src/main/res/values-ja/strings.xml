@@ -331,6 +331,8 @@
     <string name="auto_hide_timeout_label">アクティビティタイムアウトを非表示</string>
     <string name="toggle_show_in_landscape_title">風景モードの表示</string>
     <string name="toggle_show_in_landscape_desc">デバイスを回転させるとEssential Islandが見える状態の方向に保つ</string>
+    <string name="toggle_show_notification_cards_landscape_title">横向き時に通知カードを表示</string>
+    <string name="toggle_show_notification_cards_landscape_desc">横向きでアイランドが非表示でも、通知が届くとカードが表示され、カードがなくなると再び非表示になります</string>
     <string name="toggle_bluetooth_battery_title">Bluetoothバッテリー&amp;イヤホンアニメーション</string>
     <string name="toggle_bluetooth_battery_desc">接続されたデバイスのバッテリーのパーセンテージを表示し、島のイヤホンアイコンとスムーズに交互に</string>
     <string name="toggle_battery_mode_title">バッテリー&amp;充電イベント</string>

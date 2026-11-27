@@ -27,6 +27,8 @@ class SmartIslandSettingsTest {
         assertEquals(0xFF000000L, settings.pillColor)
         assertEquals(true, settings.showNotificationActions)
         assertEquals(true, settings.hideFromNotificationShade)
+        assertEquals(true, settings.showInLandscape)
+        assertEquals(true, settings.showNotificationCardsInLandscape)
         assertEquals(true, settings.keepSilentCopyInShade)
         assertEquals(true, settings.autoExpandOnNotification)
         assertEquals(true, settings.autoExpandOnLockScreen)
@@ -122,6 +124,7 @@ class SmartIslandSettingsTest {
             autoHidePill = true,
             autoHideTimeoutSeconds = 10,
             showInLandscape = true,
+            showNotificationCardsInLandscape = false,
             showBluetoothBattery = false,
             enableNotificationCooldown = true,
             notificationCooldownDurationMinutes = 5,
@@ -172,6 +175,13 @@ class SmartIslandSettingsTest {
         // Backups saved before the silent-copy feature existed carry no key: the default (on) applies.
         val old = SmartIslandSettings.fromJson("""{"settings": {"width": 100}}""")
         assertEquals(true, old.keepSilentCopyInShade)
+    }
+
+    @Test
+    fun testShowNotificationCardsInLandscapeFallsBackToDefaultWhenKeyMissing() {
+        // Backups saved before the landscape-cards feature existed carry no key: the default (on) applies.
+        val old = SmartIslandSettings.fromJson("""{"settings": {"width": 100}}""")
+        assertEquals(true, old.showNotificationCardsInLandscape)
     }
 
     @Test

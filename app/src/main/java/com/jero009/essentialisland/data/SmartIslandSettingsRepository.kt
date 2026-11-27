@@ -86,6 +86,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
         val AutoHidePill = booleanPreferencesKey("auto_hide_pill")
         val AutoHideTimeoutSeconds = intPreferencesKey("auto_hide_timeout_seconds")
         val ShowInLandscape = booleanPreferencesKey("show_in_landscape")
+        val ShowNotificationCardsInLandscape = booleanPreferencesKey("show_notification_cards_in_landscape")
         val AutoExpandOnNotification = booleanPreferencesKey("auto_expand_on_notification")
         val AutoExpandOnLockScreen = booleanPreferencesKey("auto_expand_on_lock_screen")
         val EnableShadow = booleanPreferencesKey("enable_shadow")
@@ -387,6 +388,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
                 autoHidePill = prefs[Keys.AutoHidePill] ?: defaults.autoHidePill,
                 autoHideTimeoutSeconds = prefs[Keys.AutoHideTimeoutSeconds] ?: defaults.autoHideTimeoutSeconds,
                 showInLandscape = prefs[Keys.ShowInLandscape] ?: defaults.showInLandscape,
+                showNotificationCardsInLandscape = prefs[Keys.ShowNotificationCardsInLandscape] ?: defaults.showNotificationCardsInLandscape,
                 autoExpandOnNotification = prefs[Keys.AutoExpandOnNotification] ?: defaults.autoExpandOnNotification,
                 autoExpandOnLockScreen = prefs[Keys.AutoExpandOnLockScreen] ?: defaults.autoExpandOnLockScreen,
                 enableShadow = prefs[Keys.EnableShadow] ?: defaults.enableShadow,
@@ -905,6 +907,9 @@ class SmartIslandSettingsRepository(private val context: Context) {
     }
     suspend fun setShowInLandscape(value: Boolean) = editSafely {
         it[Keys.ShowInLandscape] = value
+    }
+    suspend fun setShowNotificationCardsInLandscape(value: Boolean) = editSafely {
+        it[Keys.ShowNotificationCardsInLandscape] = value
     }
     suspend fun setAutoExpandOnNotification(value: Boolean) = editSafely {
         it[Keys.AutoExpandOnNotification] = value
@@ -1488,6 +1493,7 @@ class SmartIslandSettingsRepository(private val context: Context) {
         prefs[Keys.AutoHidePill] = settings.autoHidePill
         prefs[Keys.AutoHideTimeoutSeconds] = settings.autoHideTimeoutSeconds.coerceIn(1, 120)
         prefs[Keys.ShowInLandscape] = settings.showInLandscape
+        prefs[Keys.ShowNotificationCardsInLandscape] = settings.showNotificationCardsInLandscape
         prefs[Keys.AutoExpandOnNotification] = settings.autoExpandOnNotification
         prefs[Keys.AutoExpandOnLockScreen] = settings.autoExpandOnLockScreen
         prefs[Keys.EnableShadow] = settings.enableShadow
